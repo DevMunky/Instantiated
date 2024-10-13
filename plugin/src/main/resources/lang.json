@@ -1,0 +1,18 @@
+{
+  "test": "<red>Test {0} {0} {1}",
+  "command.invoke_component.success": "<green>Every instance of given component ({0}) was invoked",
+  "command.invoke_component.not_found": "<red>Component {0} not found",
+  "command.reload.unsaved_changes": "<red><bold>You have unsaved changes!<newline><gray><italic>Try again to reload anyway.",
+  "command.reload.error": "<red>Error while reloading: {0}",
+  "command.reload.success": "<green>Instantiated reloaded",
+  "command.start.success": "<green>Started instance for {0}",
+  "command.leave.single.success": "<green>Left dungeon",
+  "command.leave.single.not_in_dungeon": "<red>You are not currently in a dungeon",
+  "command.leave.many.no_players": "<red>No players found",
+  "command.edit.enter_mode": "<green>Entered edit mode",
+  "command.edit.exit_mode": "<green>Exited edit mode",
+  "instance.key.title.picked_up": "<gradient:blue:green:blue>Key auto picked up!",
+  "instance.key.title.current_keys": "<gray><italic>Current keys: {0}",
+  "edit.title.selected_room": "<green><i>Selected room: {0}",
+  "edit.deny" : "<red>Cannot enter edit mode because there was an error, and we want to preserve as much data as possible"
+}

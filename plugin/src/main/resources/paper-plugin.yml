@@ -1,0 +1,16 @@
+name: Instantiated
+version: '${version}'
+main: dev.munky.instantiated.Instantiated
+api-version: '1.21'
+description: "The better dungeon solution for Minecraft. Create dungeons in-game, or directly through configuration in dungeons.json with supreme error handling."
+loader: dev.munky.instantiated.InstantiatedPluginLoader
+authors:
+  - "https://github.com/DevMunky/Instantiated-Public"
+dependencies:
+  server:
+    FastAsyncWorldEdit:
+      load: BEFORE
+      required: true
+    MythicMobs:
+      load: BEFORE
+      required: false
