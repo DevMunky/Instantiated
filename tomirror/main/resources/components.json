@@ -1,0 +1,61 @@
+{
+  "test": {
+    "testroom_": [
+      {
+        "type": "SpawnerComponent",
+        "data": {
+          "location-and-direction-trait": {
+            "vector": {
+              "x": -10.0,
+              "y": 0.0,
+              "z": 0.0
+            },
+            "yaw": 25,
+            "pitch": 10.66
+          },
+          "spawner-trait": {
+            "mob": "boss_man",
+            "radius": 2.1,
+            "quantity-lower": 1,
+            "quantity-upper": 3
+          },
+          "uuid": "fec1d657-4fd6-4076-ba34-bc2f4f884214"
+        }
+      },
+      {
+        "type": "TriggerOnRoomEnterComponent",
+        "data": {
+          "trigger-room-enter": {
+            "uses": 1,
+            "targets": [
+              "fec1d657-4fd6-4076-ba34-bc2f4f884214"
+            ]
+          },
+          "uuid": "d18c4ae0-1c81-46df-b31f-9e5ae48e81ae"
+        }
+      },
+      {
+        "type": "DoorComponent",
+        "data": {
+          "location-trait": {
+            "vector": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "set-blocks-trait": {
+            "open": "air",
+            "close": "dirt",
+            "change": "BOTTOM_UP",
+            "blocks": [
+              123125,
+              12512525
+            ]
+          },
+          "uuid": "66664ae0-1c81-46df-b31f-9e5ae48e81ae"
+        }
+      }
+    ]
+  }
+}

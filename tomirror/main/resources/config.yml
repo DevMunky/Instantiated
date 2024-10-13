@@ -1,0 +1,15 @@
+debug:
+  enabled: true
+  use-exclusively-resource-files: false
+dungeon:
+  world: instancing
+  grid-size: 120
+  cache-size-per-dungeon: 1
+  edit-mode:
+    resolution: 4
+    refresh-rate: 1
+    renderer: block
+  keys:
+    dropped-keys-glow:
+      enabled: true
+      color: BLUE

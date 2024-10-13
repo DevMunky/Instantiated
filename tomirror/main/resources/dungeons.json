@@ -1,0 +1,104 @@
+{
+  "dungeons": [
+    {
+      "type": "static",
+      "id": "test",
+      "schematic": "arena.schem",
+      "spawn": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rooms": [
+        {
+          "id": "testroom_",
+          "origin": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "box": {
+            "pos1": {
+              "x": -7.8460135,
+              "y": 0.0,
+              "z": 8.781208
+            },
+            "pos2": {
+              "x": -17.0,
+              "y": 4.0,
+              "z": -11.304631
+            }
+          },
+          "key-drop-mode": "ROOM_MOBS_CLEAR",
+          "key-material": "gold_ingot"
+        },
+        {
+          "id": "center",
+          "origin": {
+            "x": 15,
+            "y": 0,
+            "z": 0
+          },
+          "box": {
+            "pos1": {
+              "x": 4.8011093,
+              "y": 0.0,
+              "z": -1.3174058
+            },
+            "pos2": {
+              "x": -6.0,
+              "y": 4.0,
+              "z": 9.0
+            }
+          },
+          "key-drop-mode": "ROOM_MOBS_CLEAR",
+          "key-material": "dirt"
+        },
+        {
+          "id": "hahaha nerd",
+          "origin": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "box": {
+            "pos1": {
+              "x": 14.0,
+              "y": 0.0,
+              "z": -9.0
+            },
+            "pos2": {
+              "x": 19.0,
+              "y": 5.0,
+              "z": -18.0
+            }
+          },
+          "key-drop-mode": "ROOM_MOBS_CLEAR",
+          "key-material": "gold_ingot"
+        },
+        {
+          "id": "room1",
+          "origin": {
+            "x": 0,
+            "y": 0,
+            "z": 8
+          },
+          "box": {
+            "pos1": {
+              "x": 7.3270693,
+              "y": 0.0,
+              "z": -0.30457067
+            },
+            "pos2": {
+              "x": -9.403597,
+              "y": 6.0,
+              "z": 13.0
+            }
+          },
+          "key-drop-mode": "ROOM_MOBS_CLEAR",
+          "key-material": "gold_ingot"
+        }
+      ]
+    }
+  ]
+}
