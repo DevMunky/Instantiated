@@ -29,8 +29,8 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import java.io.File
 import java.nio.file.Files
-import java.util.stream.Collectors
 import kotlin.math.min
+import kotlin.streams.asSequence
 
 class FormatLoader : DataFileLoader("dungeons.json"), KoinComponent {
     companion object{
@@ -62,11 +62,10 @@ class FormatLoader : DataFileLoader("dungeons.json"), KoinComponent {
                     .filter { it.toString().endsWith(".schem") || it.toString().endsWith(".schematic") }
                     .filter { it != null }
                     .filter { Files.isRegularFile(it) }
-                    .filter { plugin.logger.debug("Schematic '" + it.fileName + "' registered"); true }
-                    .collect(Collectors.toMap(
-                        { it.fileName.toString() },
-                        { File(it.toString()) }
-                    ))
+                    .asSequence()
+                    .associateBy { it.toString().drop(SCHEMATICS_FOLDER.path.length + 1) } // trim the directory plus the extra slash at the end
+                    .mapValues { File(it.value.toString()) }
+                    .filter { plugin.logger.debug("Schematic '" + it.key + "' registered"); true }
             }
     }
 
