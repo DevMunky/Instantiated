@@ -27,13 +27,13 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentLinkedDeque
 
 
-// TODO Optimize particle rendering (packet channel flushing is the culprit)
-// TODO abstract render methods and use block displays that are glowing
+// FIXED -> Optimize particle rendering (packet channel flushing is the culprit)
+// FIXED -> abstract render methods and use block displays that are glowing
 class ParticleRenderer: AbstractRenderer() {
 
-    private val manager get() = get<DungeonManager>()
-    private val editModeHandler get() = get<EditModeHandler>()
-    private val config get() = get<TheConfig>()
+    private val manager = get<DungeonManager>()
+    private val editModeHandler = get<EditModeHandler>()
+    private val config = get<TheConfig>()
     // these are all particles that are ready to spawn, ie have a location
     private val particleBuffer = ConcurrentLinkedDeque<() -> Unit>()
 
@@ -106,7 +106,7 @@ val TWELVE_EDGES_OF_A_CUBE: Array<Pair<Int,Int>> = arrayOf( // all 12 edges of a
 class BlockDisplayRenderer: AbstractRenderer() {
 
     private val editModeHandler = get<EditModeHandler>()
-    private val manager get() = get<DungeonManager>()
+    private val manager = get<DungeonManager>()
 
     private val tracker = HashMap<String, CompletableFuture<BlockDisplay>>()
     private val accounting = HashSet<String>()
@@ -204,4 +204,3 @@ class BlockDisplayRenderer: AbstractRenderer() {
         override fun toString(): String = "${block.key.key}:$glowColor"
     }
 }
-

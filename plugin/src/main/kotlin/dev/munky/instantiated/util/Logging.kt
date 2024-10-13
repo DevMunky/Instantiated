@@ -1,5 +1,6 @@
 package dev.munky.instantiated.util
 
+import dev.munky.instantiated.common.logging.ConsoleColors
 import dev.munky.instantiated.common.util.DebugLogger
 import dev.munky.instantiated.common.util.log
 import java.util.logging.Level
@@ -47,4 +48,3 @@ class CustomLogger(private val debug: () -> Boolean, name: String) : DebugLogger
 
     override fun log(level: Level, msg: String, thrown: Throwable) = thrown.log(msg)
 }
-

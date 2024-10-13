@@ -66,7 +66,9 @@ abstract class AbstractRenderer: KoinComponent {
     protected abstract fun asyncRender()
     protected abstract fun syncRender()
 
-    fun renderText(world: World, location: Vector3f, component: Component, editor: Player, scale: Float = 1f) = get<TextRenderer>().renderText(world, location, component, editor, scale)
+    private val text = get<TextRenderer>()
+
+    fun renderText(world: World, location: Vector3f, component: Component, editor: Player, scale: Float = 1f) = text.renderText(world, location, component, editor, scale)
 
     fun renderInstance(instance: Instance, editor: Player, selectedData: RenderData, unselectedData: RenderData, instanceData: RenderData = RenderOptions.INSTANCE_BOUNDS){
         val selectedRoom = editor.getIntraData(EditModeHandler.StateKeys.EDIT_MODE)!!.selectedRoom
@@ -78,9 +80,11 @@ abstract class AbstractRenderer: KoinComponent {
             .forEach { renderRoom(it.key, editor, if (it.value) selectedData else unselectedData) }
     }
 
+    private val componentStorage = get<ComponentStorage>()
+
     fun renderRoom(room: RoomInstance, editor: Player, data: RenderData){
         renderBox(room.realVector.world, room.box, data, editor)
-        get<ComponentStorage>()[room.format]?.forEach {
+        componentStorage[room.format]?.forEach {
             it.render(this, room, editor)
         }
         renderText(room.realVector.world, room.box.center, Component.text(room.identifier.toString()), editor, 3f)
@@ -135,6 +139,7 @@ abstract class AbstractRenderer: KoinComponent {
             renderLine(world, v1, v2, data, editor, resMod)
         }
     }
+
     abstract fun renderLine(world: World, from: Vector3f, to: Vector3f, data: RenderData, editor: Player, resMod: Float = 1f)
 
     data class RenderData(

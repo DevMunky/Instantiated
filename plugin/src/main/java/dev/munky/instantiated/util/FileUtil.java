@@ -1,5 +1,6 @@
 package dev.munky.instantiated.util;
 
+import dev.munky.instantiated.common.logging.ConsoleColors;
 import dev.munky.instantiated.common.util.Util;
 import org.bukkit.World;
 

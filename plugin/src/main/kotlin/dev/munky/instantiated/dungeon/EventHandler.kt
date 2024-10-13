@@ -62,12 +62,14 @@ class EventManager: KoinComponent {
         data object QuitHandler : EventHandler<PlayerQuitEvent>(PlayerQuitEvent::class) {
             override fun handle(event: PlayerQuitEvent) {
                 val uuid = event.player.uniqueId
-                val dungeon = event.player.currentDungeon ?: return
+                val dungeon = event.player.currentDungeon?.identifier ?: return
                 val name = event.player.name
                 Schedulers.ASYNC.submit(5L.seconds){
                     val player = Bukkit.getPlayer(uuid)
                     if (player == null || !player.isOnline) {
-                        dungeon.removePlayer(uuid)
+                        FORMATS[dungeon]?.instances?.forEach {
+                            it.removePlayer(uuid)
+                        }
                         plugin.logger.debug("Player '$name' removed from instance due to timeout")
                     } else plugin.logger.debug("Player '$name' reconnected before being kicked out of instance")
                 }
@@ -77,7 +79,7 @@ class EventManager: KoinComponent {
             override fun handle(event: PlayerJoinEvent) {
                 val instance = event.player.currentDungeon
                 if (instance == null) {
-                    // TODO maybe make this location editable, not sure how though
+                    // TODO maybe make this location editable
                     event.player.teleport(Bukkit.getWorlds().first().spawnLocation)
                     plugin.logger.debug("Moved '${event.player.name}' out of instancing world (not in instance)")
                 }else {
@@ -145,7 +147,7 @@ class EventManager: KoinComponent {
                     || event.to.world == MANAGER.dungeonWorld
                 ) return
                 val uuid = event.player.uniqueId
-                MANAGER.getCurrentDungeon(uuid)?.removePlayer(uuid)
+                event.player.currentDungeon?.removePlayer(uuid)
             }
         }
     }

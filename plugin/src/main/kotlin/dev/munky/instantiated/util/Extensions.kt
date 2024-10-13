@@ -47,7 +47,7 @@ val BlockVector3.toVector3f: Vector3f get() {
 }
 
 // TODO remove lang message
-val String.fromMini : Component get() = ComponentUtil.toComponent(this)
+val String.asComponent : Component get() = ComponentUtil.toComponent(this)
 
 val Component.asString : String get() = ComponentUtil.toString(this)
 

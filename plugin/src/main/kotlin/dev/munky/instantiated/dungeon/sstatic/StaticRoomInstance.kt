@@ -26,6 +26,7 @@ class StaticRoomInstance(
     init{
         val components = plugin.get<ComponentStorage>()[this.format] ?: ArrayList()
         for (c in components){
+            print("Components in room '$identifier' -> $c")
             if (c is NeedsInitialized) c.initialize(TraitContext(this, null))
         }
     }

@@ -28,6 +28,7 @@ import dev.munky.instantiated.util.commandFail
 import dev.munky.instantiated.util.send
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
+import org.joml.Vector3f
 import org.koin.core.component.get
 import java.util.*
 import java.util.concurrent.CompletableFuture
@@ -49,7 +50,31 @@ class DungeonCommand {
             .invokeComponentCommand(componentStorage)
             .leaveCommand(manager)
             .editCommand(editModeHandler)
+            .createDungeonCommand()
             .setDebugCommand()
+    }
+
+    private fun CommandTree.createDungeonCommand(): CommandTree {
+        return this.then(LiteralArgument("create")
+            .then(LiteralArgument("dungeon")
+                .then(TextArgument("name")
+                    .then(TextArgument("schematic")
+                        .executes(CommandExecutor { sender, args ->
+                            val name = args[0] as String
+                            val schemName = args[1] as String
+                            val schem = FormatLoader.REGISTERED_SCHEMATICS[schemName]
+                                ?: FormatLoader.REGISTERED_SCHEMATICS["$schemName.schem"]
+                                ?: caption("command.create.dungeon.schematic_not_found", schemName).commandFail()
+                            val storage = plugin.get<FormatStorage>()
+                            val formats = HashMap(storage)
+                            formats[IdType.DUNGEON with name] = StaticFormat(IdType.DUNGEON with name, schem, Vector3f(0f))
+                            storage.load(formats)
+                            caption("command.create.dungeon.success").send(sender)
+                        })
+                    )
+                )
+            )
+        )
     }
 
     private fun CommandTree.setDebugCommand(): CommandTree{
@@ -128,7 +153,7 @@ class DungeonCommand {
                     caption("command.reload.success").send(sender)
                 } catch (e: Exception) {
                     e.log("Error while reloading")
-                    caption("command.reload.error", e.message!!).send(sender)
+                    caption("command.reload.error", e.message!!).commandFail()
                 }
             })
         )

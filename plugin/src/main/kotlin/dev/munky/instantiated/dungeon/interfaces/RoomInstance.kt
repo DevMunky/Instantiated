@@ -12,7 +12,7 @@ import dev.munky.instantiated.event.room.mob.DungeonMobKillEvent
 import dev.munky.instantiated.exception.DungeonExceptions
 import dev.munky.instantiated.plugin
 import dev.munky.instantiated.scheduling.Schedulers
-import dev.munky.instantiated.util.fromMini
+import dev.munky.instantiated.util.asComponent
 import dev.munky.instantiated.util.setGlowColorFor
 import dev.munky.instantiated.util.stackMessage
 import net.kyori.adventure.text.Component
@@ -78,7 +78,7 @@ interface RoomInstance : Identifiable {
         val meta = keyItem.itemMeta
         meta.displayName(keyItemName)
         keyItem.setItemMeta(meta)
-        val keyDropTitle = generateKeyTitle("<gradient:red:blue:red>Key dropped!".fromMini)
+        val keyDropTitle = generateKeyTitle("<gradient:red:blue:red>Key dropped!".asComponent)
         for (player in this.parent.onlinePlayers) { player.showTitle(keyDropTitle) }
         val keyEntity = location.world.spawn(location, Item::class.java) { itemEntity ->
             itemEntity.isCustomNameVisible = true

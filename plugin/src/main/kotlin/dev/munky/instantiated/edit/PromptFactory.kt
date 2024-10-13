@@ -4,7 +4,7 @@ import dev.munky.instantiated.common.util.log
 import dev.munky.instantiated.data.loader.caption
 import dev.munky.instantiated.event.ListenerFactory
 import dev.munky.instantiated.util.asString
-import dev.munky.instantiated.util.fromMini
+import dev.munky.instantiated.util.asComponent
 import dev.munky.instantiated.util.send
 import dev.munky.instantiated.util.toVector3i
 import io.papermc.paper.event.player.AsyncChatEvent
@@ -83,10 +83,10 @@ object PromptFactory {
     }
 
     fun promptFloats(count: Int, audience: Audience, timeout: Duration = 10L.seconds): FloatArray =
-        prompt("<green>Enter $count floats seperated by a space".fromMini, audience, timeout) { response ->
+        prompt("<green>Enter $count floats seperated by a space".asComponent, audience, timeout) { response ->
             val splitResponse = response.split(" ")
             if (splitResponse.size != count) {
-                audience.sendMessage("Not enough arguments! Needed $count, received ${splitResponse.size}".fromMini)
+                audience.sendMessage("Not enough arguments! Needed $count, received ${splitResponse.size}".asComponent)
                 throw RetryPromptException()
             }
             try {
@@ -94,17 +94,17 @@ object PromptFactory {
                     splitResponse[it].toFloat()
                 }
             } catch (t: Throwable) {
-                audience.sendMessage("<red>Could not parse response -> ${t.message}".fromMini)
+                audience.sendMessage("<red>Could not parse response -> ${t.message}".asComponent)
                 if (t !is NumberFormatException) t.log("parse error")
                 throw RetryPromptException()
             }
         }
 
     fun promptIntegers(count: Int, audience: Audience, timeout: Duration = 10L.seconds): IntArray =
-        prompt("<green>Enter $count integers seperated by a space".fromMini, audience, timeout) { response ->
+        prompt("<green>Enter $count integers seperated by a space".asComponent, audience, timeout) { response ->
             val splitResponse = response.split(" ")
             if (splitResponse.size != count) {
-                audience.sendMessage("Not enough arguments! Needed $count, received ${splitResponse.size}".fromMini)
+                audience.sendMessage("Not enough arguments! Needed $count, received ${splitResponse.size}".asComponent)
                 throw RetryPromptException()
             }
             try {
@@ -112,7 +112,7 @@ object PromptFactory {
                     splitResponse[it].toInt()
                 }
             } catch (t: Throwable) {
-                audience.sendMessage("<red>Could not parse response -> ${t.message}".fromMini)
+                audience.sendMessage("<red>Could not parse response -> ${t.message}".asComponent)
                 if (t !is NumberFormatException) t.log("parse error")
                 throw RetryPromptException()
             }

@@ -9,7 +9,7 @@ import dev.munky.instantiated.dungeon.interfaces.Instance
 import dev.munky.instantiated.dungeon.interfaces.RoomInstance
 import dev.munky.instantiated.plugin
 import dev.munky.instantiated.util.ComponentUtil
-import dev.munky.instantiated.util.fromMini
+import dev.munky.instantiated.util.asComponent
 import dev.munky.instantiated.util.send
 import dev.munky.instantiated.util.toVector3f
 import org.bukkit.Location
@@ -68,12 +68,12 @@ sealed interface EditTool{
             get() {
                 val item = ItemStack(Material.NETHERITE_SHOVEL)
                 item.editMeta {
-                    it.displayName("<green>Dungeon Room edit tool".fromMini)
+                    it.displayName("<green>Dungeon Room edit tool".asComponent)
                     it.lore(mutableListOf(
-                        "<gray>Click either right or left".fromMini,
-                        "<gray>To move a corner of the closest room".fromMini,
-                        "<gray>If you are not looking at a block,".fromMini,
-                        "<gray>your current position is used".fromMini
+                        "<gray>Click either right or left".asComponent,
+                        "<gray>To move a corner of the closest room".asComponent,
+                        "<gray>If you are not looking at a block,".asComponent,
+                        "<gray>your current position is used".asComponent
                     ))
                     it.persistentDataContainer.set(
                         DungeonManager.EDIT_TOOL,
@@ -90,7 +90,7 @@ sealed interface EditTool{
             val box = getCuboidFromNewCorner(click.instancedRoom.format.box, interactionVector)
             click.instancedRoom.box = box + click.instancedRoom.realVector.toVector3f
             click.instancedRoom.format.box = box // update the master 'template'
-            click.event.player.sendMessage("<green>Added vertex at ${interactionVector.x},${interactionVector.y},${interactionVector.z}".fromMini)
+            click.event.player.sendMessage("<green>Added vertex at ${interactionVector.x},${interactionVector.y},${interactionVector.z}".asComponent)
             plugin.logger.debug(
                 "Added vertex at " + interaction +
                         " from room '" + click.instancedRoom.identifier +
@@ -116,10 +116,10 @@ sealed interface EditTool{
             get() {
                 val configItem = ItemStack(Material.EMERALD)
                 configItem.editMeta {
-                    it.displayName("<blue>Configuration Editor".fromMini)
+                    it.displayName("<blue>Configuration Editor".asComponent)
                     it.lore(mutableListOf(
-                        "<gray>Click on things to change their configs,".fromMini,
-                        "<gray>Or click nothing to configure the current room".fromMini
+                        "<gray>Click on things to change their configs,".asComponent,
+                        "<gray>Or click nothing to configure the current room".asComponent
                     ))
                     it.persistentDataContainer.set(
                         DungeonManager.EDIT_TOOL,
@@ -158,7 +158,7 @@ sealed interface EditTool{
                 .filter { it.key < 1.5f.pow(2) } // filter only components closer than a block and a half
                 .firstNotNullOfOrNull { it.value } // first not null component, or null if there is no component
                 ?: run { // handle no component found
-                    click.event.player.sendActionBar("<red>There is no component here".fromMini)
+                    click.event.player.sendActionBar("<red>There is no component here".asComponent)
                     return
                 }
             val question = component.headedQuestion.build()
@@ -170,8 +170,8 @@ sealed interface EditTool{
             entityItem.editMeta {
                 it.displayName(ComponentUtil.toComponent("<yellow>Component Tool"))
                 it.lore(mutableListOf(
-                    "<gray>Right click to add mob at your location".fromMini,
-                    "<gray>Left click to delete mobs at clicked block".fromMini
+                    "<gray>Right click to add mob at your location".asComponent,
+                    "<gray>Left click to delete mobs at clicked block".asComponent
                 ))
                 it.persistentDataContainer.set(
                     DungeonManager.EDIT_TOOL,

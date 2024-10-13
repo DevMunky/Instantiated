@@ -6,7 +6,7 @@ import dev.munky.instantiated.dungeon.component.DungeonComponent
 import dev.munky.instantiated.dungeon.component.trait.Trait
 import dev.munky.instantiated.plugin
 import dev.munky.instantiated.scheduling.Schedulers
-import dev.munky.instantiated.util.fromMini
+import dev.munky.instantiated.util.asComponent
 import dev.munky.instantiated.util.send
 import net.kyori.adventure.audience.Audience
 import net.kyori.adventure.text.Component
@@ -65,8 +65,8 @@ sealed interface QuestionElement{
     ): QuestionElement {
         constructor(label: Component, vararg options: QuestionElement): this(label, options.toList())
 
-        constructor(label: String, vararg options: QuestionElement): this(label.fromMini, options.toList())
-        constructor(label: String, options: Collection<QuestionElement>): this(label.fromMini, options)
+        constructor(label: String, vararg options: QuestionElement): this(label.asComponent, options.toList())
+        constructor(label: String, options: Collection<QuestionElement>): this(label.asComponent, options)
 
         override fun withScope(level: Int): Component {
             var component = Component.empty() as Component
@@ -105,7 +105,7 @@ sealed interface QuestionElement{
     data class Label(
         val component: Component
     ): QuestionElement {
-        constructor(label: String): this(label.fromMini)
+        constructor(label: String): this(label.asComponent)
         override fun withScope(level: Int): Component = Component.empty().withScope(level).append(component)
     }
 
@@ -128,7 +128,7 @@ sealed interface QuestionElement{
         constructor(
             label: String,
             callback: (Audience) -> Unit
-        ): this(label.fromMini, DEFAULT_HOVER_MESSAGE,callback)
+        ): this(label.asComponent, DEFAULT_HOVER_MESSAGE,callback)
 
         override fun withScope(level: Int): Component {
             val scoped = Component.empty().withScope(level)
@@ -142,7 +142,7 @@ sealed interface QuestionElement{
                                     CLEAR_CHAT_COMPONENT.send(audience)
                                     callback(audience)
                                 } catch (t: TimeoutException) {
-                                    audience.sendMessage("<red>${t.message}".fromMini)
+                                    audience.sendMessage("<red>${t.message}".asComponent)
                                     plugin.logger.debug("Timed out: ${t.message}")
                                 } catch (t: PromptFactory.RetryPromptException) {
                                     plugin.logger.debug("Not sure how a prompt exception got out")
@@ -151,7 +151,7 @@ sealed interface QuestionElement{
                                         plugin.logger.debug(line)
                                     }
                                 } catch (t: Throwable) {
-                                    audience.sendMessage("<red>${t::class.simpleName}: ${t.message}".fromMini)
+                                    audience.sendMessage("<red>${t::class.simpleName}: ${t.message}".asComponent)
                                     plugin.logger.debug("Prompt exception: ${t.formatException(true, 3)}")
                                 }
                             }
@@ -163,7 +163,6 @@ sealed interface QuestionElement{
         }
     }
 }
-
 private val CONFIGURATION_QUESTION_HEADER =
     Component.text("This message will expire after 25 seconds")
         .color(NamedTextColor.RED).decorate(TextDecoration.BOLD)

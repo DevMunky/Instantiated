@@ -235,6 +235,8 @@ class Instantiated : InstantiatedPlugin() {
 
 val plugin: Instantiated = KoinJavaComponent.get(Instantiated::class.java)
 
+val theConfig = plugin.get<TheConfig>()
+
 @Suppress("unused")
 object InstantiatedAPI: KoinComponent {
     val state: PluginState = plugin.state
@@ -318,4 +320,3 @@ private class CustomKoinLogger(
         }
     }
 }
-

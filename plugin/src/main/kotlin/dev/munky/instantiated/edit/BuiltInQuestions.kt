@@ -13,7 +13,7 @@ import dev.munky.instantiated.dungeon.sstatic.StaticRoomFormat
 import dev.munky.instantiated.dungeon.sstatic.StaticRoomInstance
 import dev.munky.instantiated.plugin
 import dev.munky.instantiated.util.ComponentUtil
-import dev.munky.instantiated.util.fromMini
+import dev.munky.instantiated.util.asComponent
 import dev.munky.instantiated.util.send
 import io.papermc.paper.registry.RegistryKey
 import net.kyori.adventure.text.Component
@@ -30,11 +30,11 @@ object BuiltInQuestions{
         QuestionElement.ListOf("Key Drop Mode",
             QuestionElement.Clickable(RoomFormat.KeyDropMode.ROOM_MOBS_CLEAR.name){
                 room.format.keyDropMode = RoomFormat.KeyDropMode.ROOM_MOBS_CLEAR
-                it.sendMessage("<green>Set key drop mode to ROOM_MOBS_CLEAR".fromMini)
+                it.sendMessage("<green>Set key drop mode to ROOM_MOBS_CLEAR".asComponent)
             },
             QuestionElement.Clickable(RoomFormat.KeyDropMode.MARKED_ROOM_MOB_KILL.name){
                 room.format.keyDropMode = RoomFormat.KeyDropMode.MARKED_ROOM_MOB_KILL
-                it.sendMessage("<green>Set key drop mode to MARKED_ROOM_MOB_KILL".fromMini)
+                it.sendMessage("<green>Set key drop mode to MARKED_ROOM_MOB_KILL".asComponent)
             }
         ),
         QuestionElement.Clickable("Key-item-type"){
@@ -52,7 +52,7 @@ object BuiltInQuestions{
             if (instance !is StaticInstance) return@Clickable
             val file = handleSchematicCallback(instance, schem)
             file.onFailure {t->
-                it.sendMessage("Error: ${t.message}".fromMini)
+                it.sendMessage("Error: ${t.message}".asComponent)
                 return@Clickable
             }
             instance.format.schematic = file.getOrThrow()
@@ -76,13 +76,13 @@ object BuiltInQuestions{
                     )
                 )
                 instance.rooms[room.identifier] = room
-                it.sendMessage("Added room '$name' to dungeon, with some default values".fromMini)
+                it.sendMessage("Added room '$name' to dungeon, with some default values".asComponent)
             },
             QuestionElement.ListOf("Remove room",
                 instance.rooms.map { room ->
                     QuestionElement.Clickable(room.key.key){
                         instance.rooms.remove(room.key)
-                        it.sendMessage("Removed room ${room.key.key}".fromMini)
+                        it.sendMessage("Removed room ${room.key.key}".asComponent)
                     }
                 }.toList()
             )

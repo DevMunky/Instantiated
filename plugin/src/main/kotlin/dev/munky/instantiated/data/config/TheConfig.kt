@@ -115,6 +115,16 @@ class TheConfig: DataFileLoader("config.yml"){
         }
     )
 
+    val componentLogging = ConfigurationValue(
+        "debug.components",
+        listOf(
+            "Whether components log debug information"
+        ),
+        { "Component debug logging is undefined" },
+        false,
+        { it as? Boolean ?: (it as String).toBoolean() }
+    )
+
     override fun load0(data: ByteArray): DataOperationResult {
         val yaml = this.yaml.getOrThrow()
         resourceDataFiles.load(yaml)
@@ -127,6 +137,7 @@ class TheConfig: DataFileLoader("config.yml"){
         renderResolution.load(yaml)
         renderRefreshRate.load(yaml)
         renderer.load(yaml)
+        componentLogging.load(yaml)
         yaml.save(file)
         return DataOperationResult.SUCCESS
     }

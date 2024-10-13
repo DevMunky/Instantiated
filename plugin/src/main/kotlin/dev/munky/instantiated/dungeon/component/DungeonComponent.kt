@@ -14,6 +14,7 @@ import dev.munky.instantiated.event.ComponentReplacementEvent
 import dev.munky.instantiated.exception.DungeonExceptions
 import dev.munky.instantiated.plugin
 import dev.munky.instantiated.scheduling.Schedulers
+import dev.munky.instantiated.theConfig
 import dev.munky.instantiated.util.toVector3f
 import net.kyori.adventure.text.Component
 import org.bukkit.Particle
@@ -89,7 +90,6 @@ abstract class DungeonComponent(
     fun hasTraitByClass(clazz: KClass<out Trait>): Boolean = _traits.any { clazz.isInstance(it) }
 
     operator fun <T: TraitContext> invoke(ctx: T){
-        plugin.logger.debug("Component invoked (${this.uuid})")
         ctx.component = this
         if (!Schedulers.COMPONENT_PROCESSING.onThread()) {
             plugin.logger.debug("Invocation thread moved")
@@ -100,6 +100,9 @@ abstract class DungeonComponent(
     }
 
     protected open fun <T: TraitContext> invoke0(ctx: T) {
+        if (theConfig.componentLogging.value){
+            plugin.logger.debug("Component invoked (${this.uuid}) on thread '${Thread.currentThread().name}'")
+        }
         for (trait in _traits) {
             if (trait !is FunctionalTrait) continue
             trait(ctx)

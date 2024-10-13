@@ -19,7 +19,8 @@ import dev.munky.instantiated.edit.QuestionElement
 import dev.munky.instantiated.event.room.mob.DungeonMobSpawnEvent
 import dev.munky.instantiated.plugin
 import dev.munky.instantiated.scheduling.Schedulers
-import dev.munky.instantiated.util.fromMini
+import dev.munky.instantiated.theConfig
+import dev.munky.instantiated.util.asComponent
 import dev.munky.instantiated.util.toVector3f
 import dev.munky.instantiated.util.toVector3i
 import io.papermc.paper.registry.RegistryKey
@@ -47,6 +48,9 @@ import kotlin.time.toKotlinDuration
 abstract class FunctionalTrait(id: String): Trait(id){
     open val priority: Int = 0
     operator fun <T: TraitContext> invoke(ctx: T){
+        if (theConfig.componentLogging.value){
+            plugin.logger.debug("Trait invoked (${this.identifier}) on thread '${Thread.currentThread().name}'")
+        }
         if (!Schedulers.COMPONENT_PROCESSING.onThread())
             throw IllegalStateException("Trait invocation did not occur on the dedicated component processing thread")
         invoke0(ctx)
@@ -66,7 +70,7 @@ class SpawnerTrait(
             val mobStorage = plugin.get<MobStorage>()
             val mob = mobStorage[IdType.MOB with id]
             if (mob == null){
-                it.sendMessage("Mob `$id` does not exist".fromMini)
+                it.sendMessage("Mob `$id` does not exist".asComponent)
                 return@Clickable
             }
             res.trait = SpawnerTrait(mob, res.trait.quantity, res.trait.radius)
@@ -146,7 +150,7 @@ class SpawnerTrait(
 
     private fun handleUnhandledMob(event: DungeonMobSpawnEvent, room: RoomInstance): Zombie =
         event.spawnLocation.world.spawn(event.spawnLocation, Zombie::class.java) { zomb ->
-            zomb.customName("<red>I AM UN-CONFIGURED. Contact your server owner".fromMini)
+            zomb.customName("<red>I AM UN-CONFIGURED. Contact your server owner".asComponent)
             zomb.isCustomNameVisible = true
             zomb.setAI(false)
             zomb.isSilent = true

@@ -117,9 +117,7 @@ internal constructor(
         }
         pastedClipboard = pasteResult
         pastedClipboard.onSuccess {
-            for (room in format.rooms.values) {
-                rooms[room.identifier] = room.instance(this)
-            }
+            init()
         }.onFailure {
             runCatching{ // do nothing with this exception
                 this.remove(
@@ -128,6 +126,12 @@ internal constructor(
                 )
             }
             throw it
+        }
+    }
+
+    fun init() {
+        for (room in format.rooms.values) {
+            rooms[room.identifier] = room.instance(this)
         }
     }
 
@@ -171,9 +175,7 @@ internal constructor(
             for (room in rooms) {
                 room.value.remove()
             }
-            for (roomFormat in format.rooms.values) {
-                rooms[roomFormat.identifier] = roomFormat.instance(this)
-            }
+            init()
             this.cache = Instance.CacheState.CACHED
             plugin.logger.info("Re-Cached instance of '$identifier'")
         }else{
