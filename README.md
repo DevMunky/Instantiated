@@ -53,6 +53,10 @@ Instantiated boasts many features, but of course not everything can be done. If 
 * ### And much more i cannot think of!
     > Please add more things to this list by making a post in `#suggestions` in the [discord](https://discord.gg/XggaTq7kjR)
 
+## Contributions
+
+Contributions are more than welcome! Create a pull request here, and I will mirror the changes on the backend repository. If internal exposure is needed, that can be arranged. Although, I dont see that being an issue seeing as how little is closed source. You can request a `gradle.build.kts` in my discord for building.
+
 ## Showcase
 ![showcase](./assets/image1.png)
 
