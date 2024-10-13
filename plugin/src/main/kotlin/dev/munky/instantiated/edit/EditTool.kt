@@ -10,13 +10,13 @@ import dev.munky.instantiated.dungeon.interfaces.RoomInstance
 import dev.munky.instantiated.plugin
 import dev.munky.instantiated.util.ComponentUtil
 import dev.munky.instantiated.util.fromMini
+import dev.munky.instantiated.util.send
 import dev.munky.instantiated.util.toVector3f
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.event.block.Action
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.inventory.ItemStack
-import org.bukkit.inventory.ItemType
 import org.bukkit.persistence.PersistentDataType
 import org.joml.Vector3f
 import org.koin.core.component.get
@@ -98,32 +98,6 @@ sealed interface EditTool{
             )
         }
     }
-    data object Door : EditTool {
-        override fun condition(click: EditToolInteraction): Boolean = true
-        override fun onRightClick(click: EditToolInteraction) {
-            TODO("Not yet implemented")
-        }
-        override fun onLeftClick(click: EditToolInteraction) {
-            TODO("Not yet implemented")
-        }
-        override val item: ItemStack
-            get() {
-                val doorItem = ItemStack(Material.IRON_INGOT)
-                doorItem.editMeta {
-                    it.displayName(ComponentUtil.toComponent("<rainbow>Dungeon door creation tool"))
-                    it.lore(mutableListOf(
-                        "<gray>Right click to move closest door corner".fromMini,
-                        "<gray>Left click to remove clicked door".fromMini
-                    ))
-                    it.persistentDataContainer.set(
-                        DungeonManager.EDIT_TOOL,
-                        PersistentDataType.STRING,
-                        this::class.simpleName!!.lowercase()
-                    )
-                }
-                return doorItem
-            }
-    }
     data object Config : EditTool{
         override fun condition(click: EditToolInteraction): Boolean = true
         override fun onRightClick(click: EditToolInteraction) = onClick(click)
@@ -132,9 +106,9 @@ sealed interface EditTool{
             val interaction = click.interactionPoint ?: click.event.player.location
             // edit entities by standing close to them
             val message = if (click.event.player.isSneaking) {
-                    ChatQuestions.getDungeonQuestion(click.instance)
+                    BuiltInQuestions.instance(click.instance)
                 } else {
-                    ChatQuestions.getRoomConfigQuestion(click.instancedRoom)
+                    BuiltInQuestions.room(click.instancedRoom)
                 }
             click.event.player.sendMessage(message)
         }
@@ -173,17 +147,13 @@ sealed interface EditTool{
 
         private fun onClick(click: EditToolInteraction) {
             val interaction = (click.interactionPoint?.clone()?.subtract(click.instancedRoom.realVector))?.toVector3f ?: run {
-                ManagedGui(HashMap(
-                    0 to ManagedItem(ItemType.STICK, "component", {}) {
-                        it.whoClicked.sendMessage("Hello!")
-                    }
-                ), 27)
+                BuiltInQuestions.roomComponents(click.instancedRoom).build().send(click.event.player)
                 return
             }
             val components = plugin.get<ComponentStorage>()[click.instancedRoom.format] ?: return
             val component = components
-                .filter { it.hasTrait<LocatableTrait>() } // has location trait
-                .associateBy { it.getTrait<LocatableTrait>().vector.distanceSquared(interaction) } // map of distance to component
+                .filter { it.hasTrait<LocatableTrait<*>>() } // has location trait
+                .associateBy { it.getTrait<LocatableTrait<*>>().vector.distanceSquared(interaction) } // map of distance to component
                 .toSortedMap() // sort by distance
                 .filter { it.key < 1.5f.pow(2) } // filter only components closer than a block and a half
                 .firstNotNullOfOrNull { it.value } // first not null component, or null if there is no component
@@ -191,7 +161,7 @@ sealed interface EditTool{
                     click.event.player.sendActionBar("<red>There is no component here".fromMini)
                     return
                 }
-            val question = component.question.withScope(0)
+            val question = component.headedQuestion.build()
             click.event.player.sendMessage(question)
         }
 

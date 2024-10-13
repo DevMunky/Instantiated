@@ -14,7 +14,7 @@ import dev.munky.instantiated.dungeon.component.trait.SetBlocksTrait
 import dev.munky.instantiated.dungeon.currentDungeon
 import dev.munky.instantiated.dungeon.interfaces.RoomInstance
 import dev.munky.instantiated.event.ListenerFactory
-import dev.munky.instantiated.lang.caption
+import dev.munky.instantiated.data.loader.caption
 import dev.munky.instantiated.plugin
 import dev.munky.instantiated.util.send
 import dev.munky.instantiated.util.toVector3i
@@ -65,10 +65,9 @@ class EditModeHandler: KoinComponent{
     // maybe edit everytime idk
     internal val hotbars = mutableMapOf(
         HotbarLayer.MAIN to getInvFromMap(
-            0 to EditTool.Config.item,
-            2 to EditTool.Component.item,
-            4 to EditTool.Vertex.item,
-            6 to EditTool.Door.item,
+            0 to EditTool.Component.item,
+            2 to EditTool.Config.item,
+            4 to EditTool.Vertex.item
         )
     )
 
@@ -79,14 +78,14 @@ class EditModeHandler: KoinComponent{
     fun shutdown(){
         states.forEach { it.shutdown() }
         playersInEditMode.forEach { player ->
-            takeOutOfEditMode(player)
+            stopEditModeFor(player)
         }
     }
 
     object States{
         object EditMode: CustomEditorState<EditMode.EditModeContext>(
             StateKeys.EDIT_MODE,
-            {caption("edit.exit").send(it.player)},
+            { caption("edit.exit").send(it.player)},
             EventHandler<PlayerItemHeldEvent, EditModeContext>(PlayerItemHeldEvent::getPlayer) {
                 val event = it.event
                 val editMode = plugin.get<EditModeHandler>()
@@ -130,7 +129,7 @@ class EditModeHandler: KoinComponent{
         }
         object SettingBlocks: CustomEditorState<Pair<RoomInstance, SetBlocksTrait>>(
             StateKeys.SETTING_BLOCKS,
-            {caption("edit.state.exit", StateKeys.SETTING_BLOCKS.key).send(it.player)},
+            { caption("edit.state.exit", StateKeys.SETTING_BLOCKS.key).send(it.player) },
             EventHandler<PlayerInteractEvent, Pair<RoomInstance, SetBlocksTrait>>(PlayerInteractEvent::getPlayer){ c ->
                 if (c.event.hand != EquipmentSlot.HAND) return@EventHandler
                 c.event.isCancelled = true
@@ -174,7 +173,7 @@ class EditModeHandler: KoinComponent{
         }
     }
 
-    fun putInEditMode(player: Player) {
+    fun startEditModeFor(player: Player) {
         if (get<FormatLoader>().lastLoadResult != DataOperationResult.SUCCESS) {
             player.sendMessage(caption("edit.deny"))
             plugin.logger
@@ -197,7 +196,7 @@ class EditModeHandler: KoinComponent{
         caption("command.edit.enter_mode", current?.identifier?.key ?: "").send(player)
     }
 
-    fun takeOutOfEditMode(player: Player) {
+    fun stopEditModeFor(player: Player) {
         player.inventory.clear()
         val snap = player.getIntraData(StateKeys.EDIT_MODE)
         snap?.inventory applyTo player

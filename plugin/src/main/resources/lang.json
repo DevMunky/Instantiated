@@ -1,5 +1,10 @@
 {
-  "test": "<red>Test {0} {0} {1}",
+  "This file is read only, but has to be valid json.": "",
+  "Certain entries here can have '{n}' where n is any positive integer. This denotes a replacement. For example:": "",
+  "'<green>Hello player {0}! The spawn world is {1}' becomes 'Hello player DevMunky! The spawn world is world'": "",
+  "You can find out which entries have this option when an entry is not found. It will print out the key and the strings passed in to replace the braces.": "",
+  "For example -> 'instance.key.title.current_keys' << [1]' or 'edit.title.selected_room << [testroom_]' or 'edit.deny'" : "",
+
   "command.invoke_component.success": "<green>Every instance of given component ({0}) was invoked",
   "command.invoke_component.not_found": "<red>Component {0} not found",
   "command.reload.unsaved_changes": "<red><bold>You have unsaved changes!<newline><gray><italic>Try again to reload anyway.",
@@ -13,6 +18,7 @@
   "command.edit.exit_mode": "<green>Exited edit mode",
   "instance.key.title.picked_up": "<gradient:blue:green:blue>Key auto picked up!",
   "instance.key.title.current_keys": "<gray><italic>Current keys: {0}",
+  "instance.key.item_name": "<gradient:red:blue:red>Door key!",
   "edit.title.selected_room": "<green><i>Selected room: {0}",
   "edit.deny" : "<red>Cannot enter edit mode because there was an error, and we want to preserve as much data as possible"
 }

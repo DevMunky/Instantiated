@@ -3,7 +3,6 @@ package dev.munky.instantiated.edit
 import com.destroystokyo.paper.ParticleBuilder
 import dev.munky.instantiated.common.logging.NotYetInitializedException
 import dev.munky.instantiated.common.structs.Box
-import dev.munky.instantiated.common.util.asRef
 import dev.munky.instantiated.common.util.copy
 import dev.munky.instantiated.common.util.log
 import dev.munky.instantiated.data.IntraDataStores.EntityIntraData.getIntraData
@@ -38,11 +37,7 @@ import org.joml.Vector2f
 import org.joml.Vector3f
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
-import java.lang.ref.WeakReference
-import java.util.*
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ConcurrentLinkedDeque
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -71,15 +66,16 @@ abstract class AbstractRenderer: KoinComponent {
     protected abstract fun asyncRender()
     protected abstract fun syncRender()
 
-    fun renderText(world: World, location: Vector3f, component: Component, editor: Player, scale: Float = 1f){
-        get<TextRenderer>().renderText(world, location, component, editor, scale)
-    }
+    fun renderText(world: World, location: Vector3f, component: Component, editor: Player, scale: Float = 1f) = get<TextRenderer>().renderText(world, location, component, editor, scale)
 
-    fun renderInstance(instance: Instance, recipient: Player, selectedData: RenderData, unselectedData: RenderData){
-        val selectedRoom = recipient.getIntraData(EditModeHandler.StateKeys.EDIT_MODE)!!.selectedRoom
+    fun renderInstance(instance: Instance, editor: Player, selectedData: RenderData, unselectedData: RenderData, instanceData: RenderData = RenderOptions.INSTANCE_BOUNDS){
+        val selectedRoom = editor.getIntraData(EditModeHandler.StateKeys.EDIT_MODE)!!.selectedRoom
+        val min = instance.rooms.map { it.value.box.minimum }.minByOrNull { it.y + it.x + it.z }!!
+        val max = instance.rooms.map { it.value.box.maximum }.minByOrNull { it.y + it.x + it.z }!!
+        renderBox(instance.locationInWorld.world, Box(min, max), instanceData, editor)
         instance.rooms.values
             .associateWith { it.identifier == selectedRoom }
-            .forEach { renderRoom(it.key, recipient, if (it.value) selectedData else unselectedData) }
+            .forEach { renderRoom(it.key, editor, if (it.value) selectedData else unselectedData) }
     }
 
     fun renderRoom(room: RoomInstance, editor: Player, data: RenderData){
@@ -90,8 +86,8 @@ abstract class AbstractRenderer: KoinComponent {
         renderText(room.realVector.world, room.box.center, Component.text(room.identifier.toString()), editor, 3f)
     }
 
-    fun renderEllipse(world: World, location: Vector3f, radiusV: Vector2f, data: RenderData, editor: Player, resMod: Float = 1f){
-        val scale = ((resMod * 20)).toInt()
+    fun renderEllipse(world: World, location: Vector3f, radiusV: Vector2f, data: RenderData, editor: Player, thetaStepMod: Float = 2f, resMod: Float = 1f){
+        val scale = ((thetaStepMod * 10)).toInt()
 
         val radX = radiusV.x
         val radZ = radiusV.y
@@ -113,6 +109,7 @@ abstract class AbstractRenderer: KoinComponent {
             last = p
         }
     }
+
     fun renderBox(world: World, box: Box, data: RenderData, editor: Player, resMod: Float = 1f){
         val min = box.minimum
         val max = box.maximum
@@ -145,6 +142,7 @@ abstract class AbstractRenderer: KoinComponent {
         val block: BlockRenderData?
     )
 
+    @Suppress("UnstableApiUsage")
     object RenderOptions{
         val SELECTED_ROOM = RenderData(
             ParticleBuilder(Particle.FLAME).extra(0.0).count(1).data(null),
@@ -156,8 +154,15 @@ abstract class AbstractRenderer: KoinComponent {
         val UNSELECTED_ROOM = RenderData(
             ParticleBuilder(Particle.DUST).extra(0.0).count(1).data(DustOptions(Color.fromRGB(10, 10, 255), 0.8f)),
             BlockRenderData(
-                BlockType.WHITE_CONCRETE,
+                BlockType.LIGHT_BLUE_CONCRETE,
                 null // NamedTextColor.GREEN,
+            )
+        )
+        val INSTANCE_BOUNDS = RenderData(
+            ParticleBuilder(Particle.DUST).extra(0.0).count(1).data(DustOptions(Color.fromRGB(10, 10, 255), 0.8f)),
+            BlockRenderData(
+                BlockType.BLACK_CONCRETE_POWDER,
+                NamedTextColor.BLUE
             )
         )
     }
@@ -216,7 +221,7 @@ private fun createRenderController(
     main: () -> Unit,
     async: () -> Unit
 ): ThreadController{
-    val rate = plugin.get<TheConfig>().RENDER_REFRESH_RATE.value.toLong()
+    val rate = plugin.get<TheConfig>().renderRefreshRate.value.toLong()
 
     val c = ThreadController(
         main,
@@ -231,24 +236,18 @@ private fun createRenderController(
 class TextRenderer: KoinComponent {
     private var controller: ThreadController? = null
 
-    private val tracker = ConcurrentHashMap<String, CompletableFuture<WeakReference<TextDisplay>>>()
-    private val accounting = ConcurrentLinkedDeque<String>()
-
+    private val tracker = HashMap<String, CompletableFuture<TextDisplay>>()
+    private val accounting = HashSet<String>()
 
     fun initialize() {
         check(controller == null) { "Thread Controller was not shutdown prior to re-initialization" }
         controller = createRenderController(::syncRender, ::asyncRender)
     }
-
     fun shutdown(){
         controller?.shutdown()
         controller = null
     }
-
-    private fun syncRender(){
-
-    }
-
+    private fun syncRender(){}
     private fun asyncRender(){
         if (!plugin.isEnabled) return
         val i = tracker.iterator()
@@ -256,11 +255,8 @@ class TextRenderer: KoinComponent {
             val entry = i.next()
             val key = entry.key
             if (!accounting.contains(key)){
-                val ref = entry.value.getNow(null)
-                val entity = ref?.get()
-                if (entity != null) {
-                    Schedulers.SYNC.submit { entity.remove() }
-                }
+                val entity = entry.value.getNow(null)
+                if (entity != null) { Schedulers.SYNC.submit { entity.remove() } }
                 i.remove()
             }
         }
@@ -287,8 +283,8 @@ class TextRenderer: KoinComponent {
 
     private fun createTextDisplay(
         world: World, location: Vector3f, content: Component, scale: Float, editor: Player
-    ): CompletableFuture<WeakReference<TextDisplay>> {
-        val future = CompletableFuture<WeakReference<TextDisplay>>()
+    ): CompletableFuture<TextDisplay> {
+        val future = CompletableFuture<TextDisplay>()
         Schedulers.SYNC.submit {
             val display = world.spawn(
                 Location(world, location.x.toDouble(), location.y.toDouble(), location.z.toDouble()),
@@ -310,15 +306,10 @@ class TextRenderer: KoinComponent {
                 display.persistentDataContainer.set(DungeonManager.INIT_TIME, PersistentDataType.LONG, plugin.initTime)
                 display.setIntraData(DungeonManager.NO_DESPAWN_ENTITY, Unit)
             }
-            future.complete(display.asRef)
+            future.complete(display)
         }
         return future
     }
 
     private fun dif(world: World, location: Vector3f): String = "${world.name}:$location"
-
-    data class TextDisplayOwner(
-        val room: RoomInstance,
-        val id: UUID? = null
-    )
 }

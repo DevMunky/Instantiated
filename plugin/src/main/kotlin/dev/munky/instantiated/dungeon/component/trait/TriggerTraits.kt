@@ -2,7 +2,8 @@ package dev.munky.instantiated.dungeon.component.trait
 
 import dev.munky.instantiated.common.structs.IdKey
 import dev.munky.instantiated.data.loader.ComponentStorage
-import dev.munky.instantiated.dungeon.component.DungeonComponent
+import dev.munky.instantiated.dungeon.component.TraitContext
+import dev.munky.instantiated.dungeon.component.TraitContextWithPlayer
 import dev.munky.instantiated.dungeon.currentDungeon
 import dev.munky.instantiated.dungeon.interfaces.Instance
 import dev.munky.instantiated.dungeon.interfaces.RoomInstance
@@ -15,6 +16,8 @@ import dev.munky.instantiated.event.room.DungeonRoomPlayerEnterEvent
 import dev.munky.instantiated.event.room.DungeonRoomPlayerLeaveEvent
 import dev.munky.instantiated.event.room.mob.DungeonMobKillEvent
 import dev.munky.instantiated.plugin
+import dev.munky.instantiated.scheduling.Schedulers
+import org.bukkit.entity.Player
 import org.bukkit.event.Event
 import org.bukkit.event.HandlerList
 import org.bukkit.event.player.PlayerEvent
@@ -22,14 +25,14 @@ import org.koin.core.component.get
 import java.util.*
 import kotlin.reflect.KClass
 
-abstract class TriggerTrait<T: Trait<T>>(
+abstract class TriggerTrait(
     id: String
-): FunctionalTrait<T>(id){
+): FunctionalTrait(id){
     protected abstract val targets: List<UUID>
-    final override fun invoke0(room: RoomInstance, component: DungeonComponent?){
+    final override fun <T : TraitContext> invoke0(ctx: T) {
         for (target in targets) {
             val resolved = plugin.get<ComponentStorage>().getByUUID(target)
-            resolved?.invoke(room) ?: plugin.logger.debug("TriggerTrait's target ($target) could not resolve")
+            resolved?.invoke(ctx) ?: plugin.logger.debug("TriggerTrait's target ($target) could not resolve")
         }
     }
 }
@@ -80,11 +83,11 @@ object EventTraitListenerHelper{
 }
 
 // will have to make a class for custom events specifically because of the question and things so
-abstract class EventTriggerTrait<T: Trait<T>,E: Event>(
+abstract class EventTriggerTrait<E: Event>(
     val event: KClass<E>,
     val uses: Int,
     public override val targets: List<UUID>
-): TriggerTrait<T>("event-trigger"){
+): TriggerTrait("event-trigger"){
 
     private val used: WeakHashMap<Instance, Int> = WeakHashMap()
 
@@ -93,11 +96,13 @@ abstract class EventTriggerTrait<T: Trait<T>,E: Event>(
     }
 
     private fun handle(event: E){
-        val room = resolveRoom(event) ?: return
-        if (!handleUses(room)) return
-        val components = plugin.get<ComponentStorage>()[room.format] ?: return
-        if (components.none { it.hasTraitByClass(this::class) }) return
-        this.invoke0(room, null)
+        Schedulers.COMPONENT_PROCESSING.submit {
+            val ctx = resolveContext(event) ?: return@submit
+            if (!handleUses(ctx.room)) return@submit
+            val components = plugin.get<ComponentStorage>()[ctx.room.format] ?: return@submit
+            if (components.none { it.hasTraitByClass(this::class) }) return@submit
+            this.invoke0(ctx)
+        }
     }
 
     private fun handleUses(room: RoomInstance): Boolean {
@@ -111,14 +116,15 @@ abstract class EventTriggerTrait<T: Trait<T>,E: Event>(
     /**
      * Ive been kind of using this as a condition as well, which works pretty nicely
      */
-    open fun resolveRoom(event: E): RoomInstance? = when (event) {
+    open fun resolveContext(event: E): TraitContext? = when (event) {
         is PlayerEvent -> {
             val instance = event.player.currentDungeon
-            instance?.getRoomAt(event.player.location)
+            val room = instance?.getRoomAt(event.player.location)
+            if (room != null) {
+                TraitContextWithPlayer(room, null, event.player)
+            } else null
         }
-        is DungeonRoomEvent -> {
-            event.room
-        }
+        is DungeonRoomEvent -> TraitContext(event.room, null)
         else -> {
             plugin.logger.debug("Event class '${event::class.qualifiedName}' cannot resolve a room getter")
             null
@@ -135,8 +141,8 @@ abstract class EventTriggerTrait<T: Trait<T>,E: Event>(
 class RoomEnterTriggerTrait(
     uses: Int,
     override val targets: List<UUID>
-): EventTriggerTrait<RoomEnterTriggerTrait, DungeonRoomPlayerEnterEvent>(DungeonRoomPlayerEnterEvent::class, uses, targets){
-    override fun resolveRoom(event: DungeonRoomPlayerEnterEvent): RoomInstance? = event.room
+): EventTriggerTrait<DungeonRoomPlayerEnterEvent>(DungeonRoomPlayerEnterEvent::class, uses, targets), EditableTrait<RoomEnterTriggerTrait>{
+    override fun resolveContext(event: DungeonRoomPlayerEnterEvent): TraitContext = TraitContextWithPlayer(event.room, null, event.player)
     override fun question(res: EditingTraitHolder<RoomEnterTriggerTrait>): QuestionElement = QuestionElement.ForTrait(
         this,
         QuestionElement.Clickable("Uses"){
@@ -148,8 +154,8 @@ class RoomEnterTriggerTrait(
 class RoomLeaveTriggerTrait(
     uses: Int,
     override val targets: List<UUID>
-): EventTriggerTrait<RoomLeaveTriggerTrait, DungeonRoomPlayerLeaveEvent>(DungeonRoomPlayerLeaveEvent::class, uses, targets){
-    override fun resolveRoom(event: DungeonRoomPlayerLeaveEvent): RoomInstance? = event.room
+): EventTriggerTrait<DungeonRoomPlayerLeaveEvent>(DungeonRoomPlayerLeaveEvent::class, uses, targets), EditableTrait<RoomLeaveTriggerTrait>{
+    override fun resolveContext(event: DungeonRoomPlayerLeaveEvent): TraitContext = TraitContextWithPlayer(event.room, null, event.player)
     override fun question(res: EditingTraitHolder<RoomLeaveTriggerTrait>): QuestionElement = QuestionElement.ForTrait(
         this,
         QuestionElement.Clickable("Uses"){
@@ -162,10 +168,11 @@ class DungeonMobKillTriggerTrait(
     val mob: IdKey,
     uses: Int,
     override val targets: List<UUID>
-): EventTriggerTrait<DungeonMobKillTriggerTrait, DungeonMobKillEvent>(DungeonMobKillEvent::class, uses, targets){
-    override fun resolveRoom(event: DungeonMobKillEvent): RoomInstance? =
+): EventTriggerTrait<DungeonMobKillEvent>(DungeonMobKillEvent::class, uses, targets), EditableTrait<DungeonMobKillTriggerTrait>{
+    override fun resolveContext(event: DungeonMobKillEvent): TraitContext? =
         if (event.mob.identifier != mob) null
-        else event.room
+        else if (event.killer !is Player) TraitContext(event.room, null)
+        else TraitContextWithPlayer(event.room, null, event.killer)
 
     override fun question(res: EditingTraitHolder<DungeonMobKillTriggerTrait>): QuestionElement = QuestionElement.ForTrait(
         this,

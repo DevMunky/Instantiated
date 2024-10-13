@@ -17,46 +17,52 @@ object Schedulers {
     val SYNC: AbstractScheduler = SyncFoliaScheduler()
     val CHAT_QUESTION: AbstractScheduler = ChatQuestionScheduler()
     val RENDER: AbstractScheduler = RenderScheduler()
-    val COMPONENT_PROCESSING = ComponentProcessor()
+    val COMPONENT_PROCESSING: AbstractScheduler = ComponentProcessor()
 }
 
-abstract class AbstractScheduler: Executor{
+/**
+ * Custom scheduler implementation
+ * Can be used with Futures, so that is nice
+ */
+abstract class AbstractScheduler internal constructor(): Executor{
 
-    override fun execute(command: Runnable) {
-        submit { command.run() }
-    }
+    override fun execute(command: Runnable) { submit { command.run() } }
 
     fun submit(block: (ScheduledTask) -> Unit): ScheduledTask{
-        if (!plugin.isEnabled) throw IllegalStateException("Instantiated disabled")
-        val task = run0(block)
+        assertEnabled()
+        val task = submit0(block)
         return task
     }
 
     fun submit(later: Duration, block: (ScheduledTask) -> Unit): ScheduledTask{
-        if (!plugin.isEnabled) throw IllegalStateException("Instantiated disabled")
-        val task = run0(later, block)
+        assertEnabled()
+        val task = submit0(later, block)
         return task
     }
 
     fun repeat(interval: Duration, block: (ScheduledTask) -> Unit): ScheduledTask{
-        if (!plugin.isEnabled) throw IllegalStateException("Instantiated disabled")
+        assertEnabled()
         val task = repeat0(interval, block)
         return task
     }
 
-    protected abstract fun run0(block: (ScheduledTask) -> Unit): ScheduledTask
-    protected abstract fun run0(later: Duration, block: (ScheduledTask) -> Unit): ScheduledTask
+    private fun assertEnabled() = if (!plugin.isEnabled || plugin.state.isDisabled) throw IllegalStateException("Instantiated is disabled") else {}
+
+    protected abstract fun submit0(block: (ScheduledTask) -> Unit): ScheduledTask
+    protected abstract fun submit0(later: Duration, block: (ScheduledTask) -> Unit): ScheduledTask
     protected abstract fun repeat0(interval: Duration, block: (ScheduledTask) -> Unit): ScheduledTask
+
+    abstract fun onThread(): Boolean
 }
 
-class AsyncFoliaScheduler: AbstractScheduler() {
+class AsyncFoliaScheduler internal constructor(): AbstractScheduler() {
     private val folia get() = Bukkit.getServer().asyncScheduler
 
-    override fun run0(block: (ScheduledTask) -> Unit): ScheduledTask {
+    override fun submit0(block: (ScheduledTask) -> Unit): ScheduledTask {
         return folia.runNow(plugin){ block(it) }
     }
 
-    override fun run0(later: Duration, block: (ScheduledTask) -> Unit): ScheduledTask {
+    override fun submit0(later: Duration, block: (ScheduledTask) -> Unit): ScheduledTask {
         return folia.runDelayed(plugin, { block(it) }, later.inWholeMilliseconds, TimeUnit.MILLISECONDS)
     }
 
@@ -64,16 +70,18 @@ class AsyncFoliaScheduler: AbstractScheduler() {
         val m = interval.inWholeMilliseconds
         return folia.runAtFixedRate(plugin, { block(it) }, m, m, TimeUnit.MILLISECONDS)
     }
+
+    override fun onThread(): Boolean = false
 }
 
-class SyncFoliaScheduler: AbstractScheduler() {
+class SyncFoliaScheduler internal constructor(): AbstractScheduler() {
     private val folia get() = Bukkit.getServer().globalRegionScheduler
 
-    override fun run0(block: (ScheduledTask) -> Unit): ScheduledTask {
+    override fun submit0(block: (ScheduledTask) -> Unit): ScheduledTask {
         return folia.run(plugin){ block(it) }
     }
 
-    override fun run0(later: Duration, block: (ScheduledTask) -> Unit): ScheduledTask {
+    override fun submit0(later: Duration, block: (ScheduledTask) -> Unit): ScheduledTask {
         val delay = Tick.tick().fromDuration(later.toJavaDuration()).toLong()
         return folia.runDelayed(plugin, { block(it) }, delay)
     }
@@ -82,11 +90,16 @@ class SyncFoliaScheduler: AbstractScheduler() {
         val t = Tick.tick().fromDuration(interval.toJavaDuration()).toLong()
         return folia.runAtFixedRate(plugin, { block(it) }, t, t)
     }
+
+    override fun onThread(): Boolean = Bukkit.isPrimaryThread()
 }
 
-class ChatQuestionScheduler: AbstractScheduler() {
-    private val thread: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor {
+class ChatQuestionScheduler internal constructor(): AbstractScheduler() {
+    private var _thread: Thread? = null
+
+    private val service: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor {
         val thread = Thread(it)
+        _thread = thread
         thread.name = "Instantiated Chat Question Processing Thread"
         thread.priority = Thread.NORM_PRIORITY + 1
         thread.setUncaughtExceptionHandler{ th, t ->
@@ -95,26 +108,28 @@ class ChatQuestionScheduler: AbstractScheduler() {
         thread
     }
 
-    override fun run0(block: (ScheduledTask) -> Unit): ScheduledTask {
+    override fun submit0(block: (ScheduledTask) -> Unit): ScheduledTask {
         val task = ChatProcessingTask(block, false)
-        task.future = thread.schedule(task, 0, TimeUnit.MILLISECONDS)
+        task.future = service.schedule(task, 0, TimeUnit.MILLISECONDS)
         return task
     }
 
-    override fun run0(later: Duration, block: (ScheduledTask) -> Unit): ScheduledTask {
+    override fun submit0(later: Duration, block: (ScheduledTask) -> Unit): ScheduledTask {
         val task = ChatProcessingTask(block, false)
-        task.future = thread.schedule(task, later.inWholeMilliseconds, TimeUnit.MILLISECONDS)
+        task.future = service.schedule(task, later.inWholeMilliseconds, TimeUnit.MILLISECONDS)
         return task
     }
 
     override fun repeat0(interval: Duration, block: (ScheduledTask) -> Unit): ScheduledTask {
         val task = ChatProcessingTask(block, true)
         val millis = interval.inWholeMilliseconds
-        task.future = thread.scheduleAtFixedRate(task, millis, millis, TimeUnit.MILLISECONDS)
+        task.future = service.scheduleAtFixedRate(task, millis, millis, TimeUnit.MILLISECONDS)
         return task
     }
 
-    private inner class ChatProcessingTask(
+    override fun onThread(): Boolean = Thread.currentThread() == _thread
+
+    private class ChatProcessingTask(
         private val block: (ScheduledTask) -> Unit,
         private val repeat: Boolean
     ): ScheduledTask, () -> Unit {
@@ -140,7 +155,7 @@ class ChatQuestionScheduler: AbstractScheduler() {
                 Future.State.SUCCESS -> ExecutionState.FINISHED
                 Future.State.FAILED -> ExecutionState.CANCELLED_RUNNING
                 Future.State.CANCELLED -> ExecutionState.CANCELLED
-                null -> ExecutionState.IDLE
+                null -> throw IllegalStateException("How is the future null")
             }
         }
 
@@ -154,9 +169,12 @@ class ChatQuestionScheduler: AbstractScheduler() {
     }
 }
 
-class RenderScheduler: AbstractScheduler() {
-    private val thread: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor {
+class RenderScheduler internal constructor(): AbstractScheduler() {
+    private var _thread: Thread? = null
+
+    private val service: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor {
         val thread = Thread(it)
+        _thread = thread
         thread.name = "Instantiated Edit Mode Render Thread"
         thread.priority = Thread.NORM_PRIORITY + 1
         thread.setUncaughtExceptionHandler{ th, t ->
@@ -165,26 +183,28 @@ class RenderScheduler: AbstractScheduler() {
         thread
     }
 
-    override fun run0(block: (ScheduledTask) -> Unit): ScheduledTask {
+    override fun submit0(block: (ScheduledTask) -> Unit): ScheduledTask {
         val task = RenderTask(block, false)
-        task.future = thread.schedule(task, 0, TimeUnit.MILLISECONDS)
+        task.future = service.schedule(task, 0, TimeUnit.MILLISECONDS)
         return task
     }
 
-    override fun run0(later: Duration, block: (ScheduledTask) -> Unit): ScheduledTask {
+    override fun submit0(later: Duration, block: (ScheduledTask) -> Unit): ScheduledTask {
         val task = RenderTask(block, false)
-        task.future = thread.schedule(task, later.inWholeNanoseconds, TimeUnit.NANOSECONDS)
+        task.future = service.schedule(task, later.inWholeNanoseconds, TimeUnit.NANOSECONDS)
         return task
     }
 
     override fun repeat0(interval: Duration, block: (ScheduledTask) -> Unit): ScheduledTask {
         val task = RenderTask(block, true)
         val nanos = interval.inWholeNanoseconds
-        task.future = thread.scheduleAtFixedRate(task, nanos, nanos, TimeUnit.NANOSECONDS)
+        task.future = service.scheduleAtFixedRate(task, nanos, nanos, TimeUnit.NANOSECONDS)
         return task
     }
 
-    private inner class RenderTask(
+    override fun onThread(): Boolean = Thread.currentThread() == _thread
+
+    private class RenderTask(
         private val block: (ScheduledTask) -> Unit,
         private val repeat: Boolean
     ): ScheduledTask, () -> Unit {
@@ -224,7 +244,7 @@ class RenderScheduler: AbstractScheduler() {
     }
 }
 
-class ComponentProcessor: AbstractScheduler() {
+class ComponentProcessor internal constructor(): AbstractScheduler() {
     private var _thread: Thread? = null
 
     private val service: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor {
@@ -238,15 +258,13 @@ class ComponentProcessor: AbstractScheduler() {
         thread
     }
 
-    internal val thread get() = _thread
-
-    override fun run0(block: (ScheduledTask) -> Unit): ScheduledTask {
+    override fun submit0(block: (ScheduledTask) -> Unit): ScheduledTask {
         val task = ProcessTask(block, false)
         task.future = service.schedule(task, 0, TimeUnit.MILLISECONDS)
         return task
     }
 
-    override fun run0(later: Duration, block: (ScheduledTask) -> Unit): ScheduledTask {
+    override fun submit0(later: Duration, block: (ScheduledTask) -> Unit): ScheduledTask {
         val task = ProcessTask(block, false)
         task.future = service.schedule(task, later.inWholeNanoseconds, TimeUnit.NANOSECONDS)
         return task
@@ -259,7 +277,9 @@ class ComponentProcessor: AbstractScheduler() {
         return task
     }
 
-    private inner class ProcessTask(
+    override fun onThread(): Boolean = Thread.currentThread() == _thread
+
+    private class ProcessTask(
         private val block: (ScheduledTask) -> Unit,
         private val repeat: Boolean
     ): ScheduledTask, () -> Unit {

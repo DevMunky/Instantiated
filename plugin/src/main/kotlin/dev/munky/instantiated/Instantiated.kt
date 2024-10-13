@@ -12,23 +12,26 @@ import dev.munky.instantiated.dungeon.DungeonManager
 import dev.munky.instantiated.dungeon.DungeonManagerImpl
 import dev.munky.instantiated.dungeon.EventManager
 import dev.munky.instantiated.dungeon.TaskManager
+import dev.munky.instantiated.dungeon.component.TraitContext
+import dev.munky.instantiated.dungeon.interfaces.Format
+import dev.munky.instantiated.dungeon.interfaces.RoomInstance
 import dev.munky.instantiated.edit.BlockDisplayRenderer
 import dev.munky.instantiated.edit.EditModeHandler
 import dev.munky.instantiated.edit.ParticleRenderer
 import dev.munky.instantiated.edit.TextRenderer
 import dev.munky.instantiated.event.InstantiatedStateEvent
 import dev.munky.instantiated.event.testing.TestingMobs
-import dev.munky.instantiated.lang.LangFileLoader
-import dev.munky.instantiated.lang.LangStorage
 import dev.munky.instantiated.network.ServerPacketRegistration
 import dev.munky.instantiated.paperhack.PaperCodecSupport
 import dev.munky.instantiated.provider.FAWEProvider
 import dev.munky.instantiated.provider.WorldChangeAccess
+import dev.munky.instantiated.scheduling.Schedulers
 import dev.munky.instantiated.util.CustomLogger
+import org.bukkit.Bukkit
+import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
 import org.bukkit.plugin.java.JavaPlugin
 import org.koin.core.component.KoinComponent
-import org.koin.core.component.KoinScopeComponent
 import org.koin.core.component.get
 import org.koin.core.context.loadKoinModules
 import org.koin.core.context.startKoin
@@ -40,22 +43,21 @@ import org.koin.dsl.module
 import org.koin.java.KoinJavaComponent
 import java.io.File
 import java.time.Duration
+import java.util.*
 
-inline fun <reified T : Any> Any.easyGet(): T {
-    if (this is KoinScopeComponent) {
-        throw UnsupportedOperationException("use get() while inside of a koin component")
-    }
-    return plugin.get()
-}
-
-class Instantiated : InstantiatedPlugin(), KoinComponent {
+class Instantiated : InstantiatedPlugin() {
+    @Suppress("unused")
     companion object{
-        @JvmStatic val instantiated get() = plugin // for java interop
+        /**
+         * Only exists for java interop.
+         */
+        @JvmStatic val instantiated get() = plugin
+        @JvmStatic val api get() = InstantiatedAPI
     }
     private var _loadState: PluginState = PluginState.UNDEFINED
     private var forceStop = true
     val initTime: Long = System.currentTimeMillis()
-    override val isMythicSupported: Boolean = false
+    val isMythicSupported: Boolean = false
     private var weOwnCommandAPI = false
 
     override fun onLoad() {
@@ -71,6 +73,7 @@ class Instantiated : InstantiatedPlugin(), KoinComponent {
             singleOf<TheConfig>(::TheConfig)
 
             singleOf<EditModeHandler>(::EditModeHandler)
+
             singleOf<EventManager>(::EventManager)
             singleOf<TaskManager>(::TaskManager)
             singleOf<DungeonManager>(::DungeonManagerImpl)
@@ -131,7 +134,7 @@ class Instantiated : InstantiatedPlugin(), KoinComponent {
 
         get<TextRenderer>().initialize()
 
-        get<TheConfig>().RENDERER.value.initialize()
+        get<TheConfig>().renderer.value.initialize()
 
         get<FormatLoader>().load()
         get<MobLoader>().load()
@@ -142,7 +145,6 @@ class Instantiated : InstantiatedPlugin(), KoinComponent {
         get<ServerPacketRegistration>().initialize(get())
 
         TestingMobs() // TODO remove test
-
 
         if (debug) {
             loadKoinModules(module {
@@ -188,8 +190,15 @@ class Instantiated : InstantiatedPlugin(), KoinComponent {
         _loadState = PluginState.DISABLED
     }
 
-    override fun onReload(save: Boolean) {
+    fun reload(save: Boolean) {
         _loadState = PluginState.RELOADING
+        if (!Bukkit.isPrimaryThread()){
+            plugin.logger.debug("Moved reload to primary thread")
+            Schedulers.SYNC.submit {
+                reload(save)
+            }
+            return
+        }
         val startTime = System.nanoTime()
 
         InstantiatedStateEvent(_loadState).callEvent()
@@ -198,7 +207,7 @@ class Instantiated : InstantiatedPlugin(), KoinComponent {
         get<DungeonManager>().cleanup()
         get<EditModeHandler>().shutdown()
         get<TextRenderer>().shutdown()
-        get<TheConfig>().RENDERER.value.shutdown()
+        get<TheConfig>().renderer.value.shutdown()
 
         get<TheConfig>().load()
         get<LangFileLoader>().load()
@@ -208,7 +217,7 @@ class Instantiated : InstantiatedPlugin(), KoinComponent {
         get<ComponentLoader>().load()
 
         get<TextRenderer>().initialize()
-        get<TheConfig>().RENDERER.value.initialize()
+        get<TheConfig>().renderer.value.initialize()
 
         get<EditModeHandler>().initialize()
 
@@ -221,39 +230,64 @@ class Instantiated : InstantiatedPlugin(), KoinComponent {
         _loadState = PluginState.PROCESSING
     }
 
-    override val debug: Boolean get() {
-        return try {
-            get<TheConfig>().DEBUG.value
-        } catch (e: Throwable) {
-            true
-        }
-    }
-
-    override val state: PluginState get() = _loadState
+    val state: PluginState get() = _loadState
 }
 
 val plugin: Instantiated = KoinJavaComponent.get(Instantiated::class.java)
 
-interface InstantiatedAPI : KoinComponent {
-    companion object{
-        @JvmStatic
-        val API: InstantiatedAPI get() = plugin
+@Suppress("unused")
+object InstantiatedAPI: KoinComponent {
+    val state: PluginState = plugin.state
+    val debug: Boolean = plugin.debug
+    fun reload(save: Boolean) = plugin.reload(save)
+    val isMythicSupported: Boolean = plugin.isMythicSupported
+
+    /**
+     * Consumes the cache
+     */
+    fun startInstance(name: String, players: Collection<Player>) {
+        val uuids = players.map{ it.uniqueId }
+        get<DungeonManager>().startInstance(name, Format.InstanceOption.CONSUME_CACHE, uuids)
     }
 
-    val state: PluginState
-    val debug: Boolean
-    fun onReload(save: Boolean)
+    fun startEditModeFor(player: Player) = get<EditModeHandler>().startEditModeFor(player)
+    fun stopEditModeFor(player: Player) = get<EditModeHandler>().stopEditModeFor(player)
 
-    val isMythicSupported: Boolean
+    /**
+     * Invoke a component by uuid.
+     * @throws IllegalArgumentException if the uuid is not associated with a component
+     * @param roomInstance the room context, if null then all rooms associated with a component instance
+     */
+    fun invokeComponent(uuid: UUID, roomInstance: RoomInstance?) {
+        val component = get<ComponentStorage>().getByUUID(uuid) ?: throw IllegalArgumentException("Unknown component $uuid")
+        if (roomInstance == null) {
+            val roomFormat = get<ComponentStorage>().getRoomByComponent(component)
+            for (instance in roomFormat.parent.instances) {
+                val r = instance.rooms[roomFormat.identifier] ?: continue // shouldn't ever continue
+                val ctx = TraitContext(r, component)
+                component(ctx)
+            }
+        } else component(TraitContext(roomInstance, component))
+    }
 }
 
-abstract class InstantiatedPlugin : JavaPlugin(), InstantiatedAPI {
+
+
+abstract class InstantiatedPlugin : JavaPlugin(), KoinComponent {
     private val iLogger = CustomLogger({ debug }, "Instantiated")
-    override fun getLogger(): CustomLogger = iLogger
+    override fun getLogger() = iLogger
     init{
         logger.info("Loading from this file -> " +
                 File(this.javaClass.protectionDomain.codeSource.location.path).name
         )
+    }
+
+    val debug: Boolean get() {
+        return try {
+            get<TheConfig>().debug.value
+        } catch (e: Throwable) {
+            true
+        }
     }
 }
 

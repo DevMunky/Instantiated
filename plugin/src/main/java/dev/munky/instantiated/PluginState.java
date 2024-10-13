@@ -22,6 +22,6 @@ public enum PluginState {
       }
       
       public boolean isState(PluginState state) {
-            return InstantiatedAPI.getAPI().getState() == state;
+            return InstantiatedAPI.INSTANCE.getState() == state;
       }
 }

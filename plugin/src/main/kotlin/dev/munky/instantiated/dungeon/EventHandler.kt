@@ -9,7 +9,6 @@ import dev.munky.instantiated.data.loader.FormatStorage
 import dev.munky.instantiated.dungeon.interfaces.Format
 import dev.munky.instantiated.dungeon.interfaces.Instance
 import dev.munky.instantiated.edit.EditModeHandler
-import dev.munky.instantiated.edit.ManagedItem
 import dev.munky.instantiated.event.DungeonTotalCacheEvent
 import dev.munky.instantiated.event.ListenerFactory
 import dev.munky.instantiated.plugin
@@ -21,7 +20,6 @@ import org.bukkit.event.HandlerList
 import org.bukkit.event.Listener
 import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.entity.EntityDamageEvent
-import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.event.player.PlayerTeleportEvent
@@ -64,7 +62,7 @@ class EventManager: KoinComponent {
         data object QuitHandler : EventHandler<PlayerQuitEvent>(PlayerQuitEvent::class) {
             override fun handle(event: PlayerQuitEvent) {
                 val uuid = event.player.uniqueId
-                val dungeon = MANAGER.getCurrentDungeon(uuid) ?: return
+                val dungeon = event.player.currentDungeon ?: return
                 val name = event.player.name
                 Schedulers.ASYNC.submit(5L.seconds){
                     val player = Bukkit.getPlayer(uuid)
@@ -72,6 +70,18 @@ class EventManager: KoinComponent {
                         dungeon.removePlayer(uuid)
                         plugin.logger.debug("Player '$name' removed from instance due to timeout")
                     } else plugin.logger.debug("Player '$name' reconnected before being kicked out of instance")
+                }
+            }
+        }
+        data object PlayerJoin : EventHandler<PlayerJoinEvent>(PlayerJoinEvent::class) {
+            override fun handle(event: PlayerJoinEvent) {
+                val instance = event.player.currentDungeon
+                if (instance == null) {
+                    // TODO maybe make this location editable, not sure how though
+                    event.player.teleport(Bukkit.getWorlds().first().spawnLocation)
+                    plugin.logger.debug("Moved '${event.player.name}' out of instancing world (not in instance)")
+                }else {
+                    plugin.logger.debug("player is in instance $instance")
                 }
             }
         }
@@ -100,7 +110,7 @@ class EventManager: KoinComponent {
         }
         data object DungeonTotalCacheHandler : EventHandler<DungeonTotalCacheEvent>(DungeonTotalCacheEvent::class) {
             override fun handle(event: DungeonTotalCacheEvent) {
-                val cacheSize = plugin.get<TheConfig>().DUNGEON_CACHE_SIZE.value
+                val cacheSize = plugin.get<TheConfig>().dungeonCacheSize.value
                 if (cacheSize == 0) return
                 plugin.logger.debug("Caching dungeons...")
                 if (FORMATS.isEmpty()) {
@@ -136,23 +146,6 @@ class EventManager: KoinComponent {
                 ) return
                 val uuid = event.player.uniqueId
                 MANAGER.getCurrentDungeon(uuid)?.removePlayer(uuid)
-            }
-        }
-        data object PlayerJoin : EventHandler<PlayerJoinEvent>(PlayerJoinEvent::class) {
-            override fun handle(event: PlayerJoinEvent) {
-                val instance = MANAGER.getCurrentDungeon(event.player.uniqueId)
-                if (instance == null) {
-                    event.player.teleport(Bukkit.getWorlds().first().spawnLocation)
-                    plugin.logger.debug("Moved '${event.player.name}' out of instancing world (not in instance)")
-                }else {
-                    plugin.logger.debug("player is in instance $instance")
-                }
-            }
-        }
-        data object HandleManagedItemTouch : EventHandler<InventoryClickEvent>(InventoryClickEvent::class){
-            override fun handle(event: InventoryClickEvent) {
-                val managedItem = event.currentItem as? ManagedItem ?: return
-                managedItem.callback(event)
             }
         }
     }

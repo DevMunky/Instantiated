@@ -1,6 +1,9 @@
 package dev.munky.instantiated.data.loader
 
-import com.google.gson.*
+import com.google.gson.JsonArray
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
+import com.google.gson.JsonPrimitive
 import dev.munky.instantiated.common.serialization.CommonJsonCodecs
 import dev.munky.instantiated.common.serialization.JsonCodec
 import dev.munky.instantiated.common.structs.IdKey
@@ -11,10 +14,9 @@ import dev.munky.instantiated.dungeon.mob.BossDungeonMob
 import dev.munky.instantiated.dungeon.mob.DungeonMob
 import dev.munky.instantiated.dungeon.mob.SimpleDungeonMob
 import dev.munky.instantiated.exception.DungeonExceptions.Companion.DataSyntax
-import dev.munky.instantiated.util.CodecHolder
+import dev.munky.instantiated.util.ModifiableCodecHolder
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
-import kotlin.reflect.KClass
 
 class MobLoader : DataFileLoader("mobs.json"), KoinComponent {
 
@@ -69,14 +71,7 @@ class MobLoader : DataFileLoader("mobs.json"), KoinComponent {
 
 class MobStorage: Storage<IdKey, DungeonMob>()
 
-object MobCodecs: CodecHolder({"Mob codec '$it' not found. Call MobCodecs.INSTANCE.registerCodec(KClass,(T)->JsonElement,JsonElement->(T)) to register one"}) {
-
-    @Suppress("unused")
-    @JvmStatic
-    fun <T: DungeonMob> registerCodec(clazz: KClass<T>, encoder: (T) -> JsonElement, decoder: (JsonElement) -> T) {
-        this.`&spine`.add(JsonCodec.of(clazz, encoder, decoder))
-    }
-
+object MobCodecs: ModifiableCodecHolder({"Mob codec '$it' not found. Call MobCodecs.INSTANCE.registerCodec<T: Any>(KClass<T>,(T)->JsonElement,JsonElement->(T)) to register it"}) {
     val SIMPLE = JsonCodec.composite(
         SimpleDungeonMob::class,
         "id", CommonJsonCodecs.STRING, { it.identifier.key },
@@ -87,7 +82,7 @@ object MobCodecs: CodecHolder({"Mob codec '$it' not found. Call MobCodecs.INSTAN
             SimpleDungeonMob(
                 IdType.MOB.with(id),
                 marked,
-                data.toMutableMap()
+                HashMap(data)
             )
         }
     )
@@ -99,7 +94,7 @@ object MobCodecs: CodecHolder({"Mob codec '$it' not found. Call MobCodecs.INSTAN
         {id,data->
             BossDungeonMob(
                 IdType.MOB.with(id),
-                data.toMutableMap()
+                HashMap(data)
             )
         }
     )

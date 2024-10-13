@@ -5,7 +5,7 @@ import org.bukkit.Bukkit
 import org.bukkit.event.Event
 import org.bukkit.event.HandlerList
 
-class InstantiatedStateEvent internal constructor(val state: PluginState): Event(!Bukkit.isPrimaryThread()){
+class InstantiatedStateEvent internal constructor(val state: PluginState): Event(false){
     companion object{
         @JvmField
         var handlerList: HandlerList = HandlerList()

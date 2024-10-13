@@ -13,16 +13,16 @@ import dev.munky.instantiated.common.structs.IdType
 import dev.munky.instantiated.common.util.asOptional
 import dev.munky.instantiated.common.util.emptyOptional
 import dev.munky.instantiated.common.util.log
+import dev.munky.instantiated.data.config.TheConfig
 import dev.munky.instantiated.data.loader.*
 import dev.munky.instantiated.dungeon.DungeonManager
+import dev.munky.instantiated.dungeon.component.TraitContext
 import dev.munky.instantiated.dungeon.interfaces.Format
 import dev.munky.instantiated.dungeon.lobby.LobbyFormat
 import dev.munky.instantiated.dungeon.procedural.ProceduralFormat
 import dev.munky.instantiated.dungeon.sstatic.StaticFormat
-import dev.munky.instantiated.easyGet
 import dev.munky.instantiated.edit.EditModeHandler
 import dev.munky.instantiated.edit.isInEditMode
-import dev.munky.instantiated.lang.caption
 import dev.munky.instantiated.plugin
 import dev.munky.instantiated.util.commandFail
 import dev.munky.instantiated.util.send
@@ -49,9 +49,22 @@ class DungeonCommand {
             .invokeComponentCommand(componentStorage)
             .leaveCommand(manager)
             .editCommand(editModeHandler)
+            .setDebugCommand()
     }
 
-    private fun CommandTree.invokeComponentCommand(componentStorage: ComponentStorage): CommandTree{
+    private fun CommandTree.setDebugCommand(): CommandTree{
+        return this.then(LiteralArgument("debug")
+            .then(BooleanArgument("state").setOptional(true)
+                .executes(CommandExecutor { sender, args ->
+                    val new = args.get("state") as? Boolean ?: !plugin.get<TheConfig>().debug.value
+                    plugin.get<TheConfig>().debug.set(new)
+                    caption("command.set_debug.success", new).send(sender)
+                })
+            )
+        )
+    }
+
+    private fun CommandTree.invokeComponentCommand(componentStorage: ComponentStorage): CommandTree {
         return this.then(LiteralArgument("invokeC")
             .then(UUIDArgument("uuid")
                 .executes(CommandExecutor { sender, args ->
@@ -61,9 +74,9 @@ class DungeonCommand {
                     val room = componentStorage.getRoomByComponent(component)
                     room.parent.instances.forEach {
                         val r = it.rooms[room.identifier] ?: return@forEach
-                        component.invoke(r)
+                        component(TraitContext(r, component))
                     }
-                    caption("command.invoke_component.success", component).send(sender)
+                    caption("command.invoke_component.success", component.identifier.key).send(sender)
                 })
             )
         )
@@ -111,7 +124,7 @@ class DungeonCommand {
                     caption("command.reload.unsaved_changes").commandFail()
                 }
                 try {
-                    plugin.onReload(false)
+                    plugin.reload(false)
                     caption("command.reload.success").send(sender)
                 } catch (e: Exception) {
                     e.log("Error while reloading")
@@ -183,8 +196,8 @@ class DungeonCommand {
     private fun CommandTree.editCommand(editModeHandler: EditModeHandler): CommandTree {
         return this.then(LiteralArgument("edit")
             .executesPlayer(PlayerCommandExecutor { player, _ ->
-                if (player.isInEditMode) editModeHandler.takeOutOfEditMode(player)
-                else editModeHandler.putInEditMode(player)
+                if (player.isInEditMode) editModeHandler.stopEditModeFor(player)
+                else editModeHandler.startEditModeFor(player)
             })
         )
     }
@@ -209,7 +222,7 @@ class DungeonCommand {
         init {
             this.replaceSuggestions(ArgumentSuggestions.stringCollectionAsync {
                 CompletableFuture.completedFuture(
-                    easyGet<FormatStorage>().values
+                    plugin.get<FormatStorage>().values
                         .filter { type.clazz.isInstance(it) }
                         .map { it.identifier.key }
                 )

@@ -9,8 +9,8 @@ import kotlin.collections.set
 abstract class Storage<K: Identifiable, V>(
     val allowPostRegister: Boolean = false
 ): Map<K, V>{
-    private var spine = HashMap<IdKey, K>()
-    private var data = HashMap<K, V>()
+    protected var spine = HashMap<IdKey, K>()
+    protected var data = HashMap<K, V>()
     private var _initializing = false
     val initializing: Boolean get() = _initializing
     open fun load(entries: Map<K, V>) {

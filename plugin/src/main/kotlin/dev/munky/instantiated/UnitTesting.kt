@@ -5,12 +5,12 @@ import dev.munky.instantiated.common.util.formatException
 import dev.munky.instantiated.data.loader.FormatStorage
 import dev.munky.instantiated.dungeon.DungeonManager
 import dev.munky.instantiated.dungeon.component.DoorComponent
-import dev.munky.instantiated.dungeon.component.trait.EditingTraitHolder
 import dev.munky.instantiated.dungeon.component.trait.SetBlocksTrait
 import dev.munky.instantiated.dungeon.interfaces.Format
 import dev.munky.instantiated.dungeon.interfaces.Instance
 import dev.munky.instantiated.dungeon.sstatic.StaticFormat
-import net.kyori.adventure.text.logger.slf4j.ComponentLogger
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.block.BlockType
 import org.joml.Vector3f
 import org.joml.Vector3i
@@ -18,7 +18,7 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import java.util.*
 
-private fun test(es: MutableMap<String, Exception>, name: String, block: () -> Unit){
+private inline fun test(es: MutableMap<String, Exception>, name: String, block: () -> Unit){
     try {
         block()
         plugin.logger.test("Test $name passed")
@@ -57,9 +57,21 @@ class UnitTesting: KoinComponent {
                 trait,
                 UUID.nameUUIDFromBytes(ByteArray(0))
             )
-            val question = comp.question
-            assert(question.elements.contains(trait.question(EditingTraitHolder(trait){}))) {"question does not contain trait"}
-            ComponentLogger.logger("test").info(question.build())
+            val question = comp.question.build()
+            val ser = PlainTextComponentSerializer.plainText()
+            // could include more in this test
+            check(question.contains(Component.text("""
+                Set change-function [
+                   -> TOP_DOWN
+                   -> BOTTOM_UP
+                   -> NEGATIVE_2_POSITIVE
+                   -> POSITIVE_2_NEGATIVE
+                ]
+            """.trimIndent()) ){ c1, c2 ->
+                val str1 = ser.serialize(c1)
+                val str2 = ser.serialize(c2)
+                str1.contains(str2) || str2.contains(str1)
+            }) {"question does not contain trait"}
         }
         test(results, "cleanup"){
             val formats = get<FormatStorage>().values.toMutableList()
@@ -68,7 +80,7 @@ class UnitTesting: KoinComponent {
             get<FormatStorage>().load(formats.associateBy { it.identifier })
         }
         results.forEach {
-            plugin.logger.test("Test ${it.key} failed: ${it.value.formatException()}")
+            plugin.logger.test("Test ${it.key} failed: ${it.value.formatException(true, 5)}")
         }
     }
 }

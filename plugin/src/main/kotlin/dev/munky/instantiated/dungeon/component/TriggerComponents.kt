@@ -3,7 +3,6 @@ package dev.munky.instantiated.dungeon.component
 import dev.munky.instantiated.dungeon.component.trait.DungeonMobKillTriggerTrait
 import dev.munky.instantiated.dungeon.component.trait.RoomEnterTriggerTrait
 import dev.munky.instantiated.dungeon.component.trait.RoomLeaveTriggerTrait
-import dev.munky.instantiated.dungeon.interfaces.RoomInstance
 import dev.munky.instantiated.edit.QuestionElement
 import java.util.*
 
@@ -19,9 +18,6 @@ class TriggerOnRoomEnterComponent(
             replaceCompInStorage(this, new)
         }
     )
-    override fun invoke0(room: RoomInstance){
-        getTrait<RoomEnterTriggerTrait>().invoke(room, this)
-    }
 }
 
 class TriggerOnRoomLeaveComponent(
@@ -36,9 +32,6 @@ class TriggerOnRoomLeaveComponent(
             replaceCompInStorage(this, new)
         }
     )
-    override fun invoke0(room: RoomInstance){
-        getTrait<RoomLeaveTriggerTrait>().invoke(room, this)
-    }
 }
 
 class TriggerOnDungeonMobKillComponent(
@@ -53,8 +46,4 @@ class TriggerOnDungeonMobKillComponent(
             replaceCompInStorage(this, new)
         }
     )
-
-    override fun invoke0(room: RoomInstance){
-        getTrait<DungeonMobKillTriggerTrait>().invoke(room, this)
-    }
 }

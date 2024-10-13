@@ -9,14 +9,14 @@ import org.bukkit.entity.LivingEntity
 
 class BossDungeonMob(
     override val identifier: IdKey,
-    override val custom: MutableMap<String, String>,
+    override val custom: HashMap<String, String>,
 ) : DungeonMob() {
 
     override var isMarked: Boolean = true
 
     constructor(
         identifier: IdKey,
-    ) : this (identifier, mutableMapOf())
+    ) : this (identifier, HashMap())
 
     override fun onDeath(room: RoomInstance, victim: LivingEntity, killer: LivingEntity): Boolean {
         val particle = ParticleBuilder(Particle.FALLING_DRIPSTONE_LAVA).count(1).extra(0.1)

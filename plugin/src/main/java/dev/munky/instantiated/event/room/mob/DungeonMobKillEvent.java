@@ -17,9 +17,11 @@ public class DungeonMobKillEvent extends DungeonRoomEvent {
         return handlers;
     }
     public final LivingEntity victim;
+    public final LivingEntity killer;
     public final DungeonMob mob;
-    public DungeonMobKillEvent(RoomInstance dungeon, LivingEntity victim, DungeonMob mob) {
+    public DungeonMobKillEvent(RoomInstance dungeon, LivingEntity killer, LivingEntity victim, DungeonMob mob) {
         super(dungeon);
+        this.killer = killer;
         this.victim = victim;
         this.mob = mob;
     }

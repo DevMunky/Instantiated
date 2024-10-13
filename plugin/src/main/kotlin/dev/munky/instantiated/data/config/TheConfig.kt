@@ -10,7 +10,7 @@ import net.kyori.adventure.text.format.NamedTextColor
 import org.koin.core.component.get
 
 class TheConfig: DataFileLoader("config.yml"){
-    val DEBUG = ConfigurationValue(
+    val debug = ConfigurationValue(
         "debug.enabled",
         listOf(
             "Whether to log extra debug info, get extra error info,",
@@ -21,7 +21,7 @@ class TheConfig: DataFileLoader("config.yml"){
         { it as Boolean }
     )
 
-    val DUNGEON_WORLD_NAME = ConfigurationValue(
+    val dungeonWorldName = ConfigurationValue(
         "dungeon.world",
         listOf("The name of the dungeon (instance) world"),
         { "Dungeon world name is undefined" },
@@ -29,7 +29,7 @@ class TheConfig: DataFileLoader("config.yml"){
         { it as String }
     )
 
-    val RENDER_REFRESH_RATE = ConfigurationValue(
+    val renderRefreshRate = ConfigurationValue(
         "dungeon.edit-mode.refresh-rate",
         listOf("The polling rate for edit mode rendering"),
         { "Render refresh rate is undefined" },
@@ -37,7 +37,7 @@ class TheConfig: DataFileLoader("config.yml"){
         { it as Int }
     )
 
-    val RENDER_RESOLUTION = ConfigurationValue(
+    val renderResolution = ConfigurationValue(
         "dungeon.edit-mode.resolution",
         listOf("The resolution for edit mode rendering"),
         { "Render resolution is undefined" },
@@ -45,7 +45,7 @@ class TheConfig: DataFileLoader("config.yml"){
         { it as Int }
     )
 
-    val KEYS_GLOW = ConfigurationValue(
+    val keysGlow = ConfigurationValue(
         "dungeon.keys.dropped-keys-glow.enabled",
         listOf("Whether or not dropped keys glow on the ground"),
         { "Dropped keys glow is undefined" },
@@ -53,7 +53,7 @@ class TheConfig: DataFileLoader("config.yml"){
         { it as Boolean }
     )
 
-    val KEYS_GLOW_COLOR = ConfigurationValue(
+    val keysGlowColor = ConfigurationValue(
         "dungeon.keys.dropped-keys-glow.color",
         listOf("The color of dropped keys, if enabled"),
         { "Dropped keys glow color is undefined" },
@@ -64,7 +64,7 @@ class TheConfig: DataFileLoader("config.yml"){
         }
     )
 
-    val DUNGEON_GRID_SIZE = ConfigurationValue(
+    val dungeonGridSize = ConfigurationValue(
         "dungeon.grid-size",
         listOf("The size of the grid formed when creating instances of formats (dungeons)"),
         { "Dungeon grid size is undefined or out of bounds" },
@@ -72,7 +72,7 @@ class TheConfig: DataFileLoader("config.yml"){
         { it as Int }
     )
 
-    val DUNGEON_CACHE_SIZE = ConfigurationValue(
+    val dungeonCacheSize = ConfigurationValue(
         "dungeon.cache-size-per-dungeon",
         listOf("The amount of cached instances created per format"),
         { "Dungeon cache size is undefined or out of bounds" },
@@ -84,7 +84,7 @@ class TheConfig: DataFileLoader("config.yml"){
         }
     )
 
-    val RESOURCE_DATA_FILES = ConfigurationValue(
+    val resourceDataFiles = ConfigurationValue(
         "debug.use-exclusively-resource-files",
         listOf(
             "Whether data file loaders pull exclusively from the jar resources",
@@ -97,18 +97,19 @@ class TheConfig: DataFileLoader("config.yml"){
         { it as Boolean }
     )
 
-    val RENDERER = ConfigurationValue(
+    val renderer = ConfigurationValue(
         "dungeon.edit-mode.renderer",
         listOf(
-            "Which edit mode renderer, either ParticleRenderer or BlockDisplayRenderer"
+            "Which edit mode renderer, either 'block' or 'particle'",
+            "particle rendering will probably become deprecated lul"
         ),
         { "Edit mode renderer is undefined" },
-        plugin.get<ParticleRenderer>(),
+        plugin.get<BlockDisplayRenderer>(),
         { name ->
             name as String
             when (name.lowercase()){
-                "particlerenderer", "particle" -> plugin.get<ParticleRenderer>()
-                "blockdisplayrenderer", "block", "blockdisplay" -> plugin.get<BlockDisplayRenderer>()
+                "particle" -> plugin.get<ParticleRenderer>()
+                "block" -> plugin.get<BlockDisplayRenderer>()
                 else -> throw IllegalStateException("Renderer $name does not exist")
             }
         }
@@ -116,16 +117,16 @@ class TheConfig: DataFileLoader("config.yml"){
 
     override fun load0(data: ByteArray): DataOperationResult {
         val yaml = this.yaml.getOrThrow()
-        RESOURCE_DATA_FILES.load(yaml)
-        DEBUG.load(yaml)
-        DUNGEON_WORLD_NAME.load(yaml)
-        DUNGEON_CACHE_SIZE.load(yaml)
-        DUNGEON_GRID_SIZE.load(yaml)
-        KEYS_GLOW.load(yaml)
-        KEYS_GLOW_COLOR.load(yaml)
-        RENDER_RESOLUTION.load(yaml)
-        RENDER_REFRESH_RATE.load(yaml)
-        RENDERER.load(yaml)
+        resourceDataFiles.load(yaml)
+        debug.load(yaml)
+        dungeonWorldName.load(yaml)
+        dungeonCacheSize.load(yaml)
+        dungeonGridSize.load(yaml)
+        keysGlow.load(yaml)
+        keysGlowColor.load(yaml)
+        renderResolution.load(yaml)
+        renderRefreshRate.load(yaml)
+        renderer.load(yaml)
         yaml.save(file)
         return DataOperationResult.SUCCESS
     }

@@ -1,7 +1,6 @@
 package dev.munky.instantiated.edit
 
 import com.destroystokyo.paper.ParticleBuilder
-import dev.munky.instantiated.common.util.asRef
 import dev.munky.instantiated.common.util.copy
 import dev.munky.instantiated.common.util.log
 import dev.munky.instantiated.data.IntraDataStores.EntityIntraData.setIntraData
@@ -24,9 +23,7 @@ import org.bukkit.util.Transformation
 import org.joml.Quaternionf
 import org.joml.Vector3f
 import org.koin.core.component.get
-import java.lang.ref.WeakReference
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedDeque
 
 
@@ -37,7 +34,6 @@ class ParticleRenderer: AbstractRenderer() {
     private val manager get() = get<DungeonManager>()
     private val editModeHandler get() = get<EditModeHandler>()
     private val config get() = get<TheConfig>()
-    private val lineResolution get() = config.RENDER_RESOLUTION.value
     // these are all particles that are ready to spawn, ie have a location
     private val particleBuffer = ConcurrentLinkedDeque<() -> Unit>()
 
@@ -52,13 +48,15 @@ class ParticleRenderer: AbstractRenderer() {
         // when i looked at the particle implementation in minecraft, it appeared that packets sent from off-main
         // force the channel to flush, where packets from main dont. Maybe this will help with lag?
         // (sending packets sync instead of async)
+
+        // fixed -> The massive lag from particles that i saw while profiling actually WAS minecraft flushing the channel after every send, since it was off main.
         synchronized(particleBuffer) {
             val i = particleBuffer.iterator()
             while (i.hasNext()) {
                 val particle = i.next()
                 try{
                     particle()
-                }catch(t: Throwable){
+                } catch(t: Throwable){
                     t.log("Spawning particle")
                 } finally {
                     i.remove()
@@ -82,7 +80,7 @@ class ParticleRenderer: AbstractRenderer() {
     override fun renderLine(world: World, from: Vector3f, to: Vector3f, data: RenderData, editor: Player, resMod: Float){
         if (Bukkit.isPrimaryThread()) throw Generic.consume("dont use particle renderer in main thread")
         data.particle ?: return
-        val res = ((lineResolution * resMod) * from.distance(to)).toInt()
+        val res = ((config.renderResolution.value * resMod) * from.distance(to)).toInt()
         val dX = (to.x - from.x).toDouble() / res
         val dY = (to.y - from.y).toDouble() / res
         val dZ = (to.z - from.z).toDouble() / res
@@ -107,18 +105,14 @@ val TWELVE_EDGES_OF_A_CUBE: Array<Pair<Int,Int>> = arrayOf( // all 12 edges of a
 
 class BlockDisplayRenderer: AbstractRenderer() {
 
-    private val editModeHandler get() = get<EditModeHandler>()
+    private val editModeHandler = get<EditModeHandler>()
     private val manager get() = get<DungeonManager>()
 
-    private val tracker = ConcurrentHashMap<String, CompletableFuture<WeakReference<BlockDisplay>>>()
+    private val tracker = HashMap<String, CompletableFuture<BlockDisplay>>()
     private val accounting = HashSet<String>()
 
     override fun initialize0(){}
-
-    override fun syncRender(){
-
-    }
-
+    override fun syncRender(){}
     override fun asyncRender(){
         if (!plugin.isEnabled) return
         for (editor in editModeHandler.playersInEditMode){
@@ -130,11 +124,8 @@ class BlockDisplayRenderer: AbstractRenderer() {
             val entry = i.next()
             val key = entry.key
             if (!accounting.contains(key)){
-                val ref = entry.value.getNow(null)
-                val entity = ref?.get()
-                if (entity != null) {
-                    Schedulers.SYNC.submit { entity.remove() }
-                }
+                val entity = entry.value.getNow(null)
+                if (entity != null) { Schedulers.SYNC.submit { entity.remove() } }
                 i.remove()
             }
         }
@@ -153,8 +144,8 @@ class BlockDisplayRenderer: AbstractRenderer() {
         }
     }
 
-    private fun createDisplay(world: World, from: Vector3f, to: Vector3f, data: BlockRenderData, editor: Player, resMod: Float): CompletableFuture<WeakReference<BlockDisplay>> {
-        val future = CompletableFuture<WeakReference<BlockDisplay>>()
+    private fun createDisplay(world: World, from: Vector3f, to: Vector3f, data: BlockRenderData, editor: Player, resMod: Float): CompletableFuture<BlockDisplay> {
+        val future = CompletableFuture<BlockDisplay>()
         try{
             val trans = generateTransform(from, to, resMod)
             Schedulers.SYNC.submit {
@@ -174,7 +165,7 @@ class BlockDisplayRenderer: AbstractRenderer() {
                         display.setIntraData(DungeonManager.NO_DESPAWN_ENTITY, Unit)
                     }catch (t: Throwable){ future.completeExceptionally(t) }
                 }
-                future.complete(spawned.asRef)
+                future.complete(spawned)
             }
         }catch (t: Throwable) { future.completeExceptionally(t) }
         return future
@@ -196,7 +187,7 @@ class BlockDisplayRenderer: AbstractRenderer() {
 
         // Create the Bukkit Transformation
         return Transformation(
-            Vector3f(0f, -(height / 2), -(width / 2)),
+            Vector3f((height / 2), -(height / 2), -(width / 2)),
             rotation,
             scale,
             Quaternionf()
@@ -204,7 +195,7 @@ class BlockDisplayRenderer: AbstractRenderer() {
     }
 
     private fun dif(p1: Vector3f, p2: Vector3f, data: BlockRenderData, resMod: Float): String =
-        "$p1$p2:$data:$resMod"
+        "[${p1.x},${p1.y},${p1.z}:${p2.x},${p2.y},${p2.z}]:$data:$resMod"
 
     data class BlockRenderData(
         val block: BlockType,

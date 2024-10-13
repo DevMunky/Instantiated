@@ -5,10 +5,7 @@ import dev.munky.instantiated.common.structs.IdKey
 import dev.munky.instantiated.common.structs.IdType
 import dev.munky.instantiated.common.structs.Identifiable
 import dev.munky.instantiated.data.loader.ComponentStorage
-import dev.munky.instantiated.dungeon.component.trait.EditingTraitHolder
-import dev.munky.instantiated.dungeon.component.trait.FunctionalTrait
-import dev.munky.instantiated.dungeon.component.trait.LocatableTrait
-import dev.munky.instantiated.dungeon.component.trait.Trait
+import dev.munky.instantiated.dungeon.component.trait.*
 import dev.munky.instantiated.dungeon.interfaces.RoomInstance
 import dev.munky.instantiated.edit.AbstractRenderer
 import dev.munky.instantiated.edit.BlockDisplayRenderer
@@ -41,25 +38,29 @@ import kotlin.reflect.KClass
  */
 abstract class DungeonComponent(
     override val identifier: IdKey,
-    traits: Collection<Trait<*>>
+    traits: Collection<Trait>
 ): Identifiable{
     private val _traits = HashSet(traits)
 
-    internal val `$traits`: Collection<Trait<*>> = _traits
+    internal val `$traits`: Collection<Trait> = _traits
 
     abstract val uuid: UUID
 
+    val headedQuestion: QuestionElement.Header get() = QuestionElement.Header(question)
+
     abstract val question: QuestionElement
 
-    inline fun <reified T: Trait<T>> question(noinline f: (T) -> Unit): QuestionElement{
-        val hold = EditingTraitHolder(getTrait(), f)
-        val question = getTrait<T>().question(hold)
+    inline fun <reified T: Trait> question(noinline f: (T) -> Unit): QuestionElement{
+        val trait = getTrait<T>()
+        if (trait !is EditableTrait<*>) throw IllegalStateException("Editable Trait does not extend Trait")
+        val hold = EditingTraitHolder(trait, f)
+        val question = trait.question(hold)
         return question
     }
 
     constructor(
         id: String,
-        traits: Collection<Trait<*>>
+        traits: Collection<Trait>
     ): this(IdType.COMPONENT with id, traits)
 
     init{
@@ -71,34 +72,41 @@ abstract class DungeonComponent(
         }
     }
 
-    inline fun <reified T: Trait<*>> hasTrait(): Boolean = hasTraitByClass(T::class)
+    inline fun <reified T: Trait> hasTrait(): Boolean = hasTraitByClass(T::class)
 
-    inline fun <reified T: Trait<*>> getTrait(): T {
+    inline fun <reified T: Trait> getTrait(): T {
         return getTraitOrNull()
             ?: throw DungeonExceptions.ComponentNotFound.consume(
                 IdType.TRAIT with (T::class.simpleName ?: "unknown")
             )
     }
 
-    inline fun <reified T: Trait<*>> getTraitOrNull(): T? = getTraitByClass(T::class)
+    inline fun <reified T: Trait> getTraitOrNull(): T? = getTraitByClass(T::class)
 
     @Suppress("UNCHECKED_CAST") // it is actually checked
-    fun <T: Trait<*>> getTraitByClass(clazz: KClass<T>): T? = _traits.firstOrNull { clazz.isInstance(it) } as? T
+    fun <T: Trait> getTraitByClass(clazz: KClass<T>): T? = _traits.firstOrNull { clazz.isInstance(it) } as? T
 
-    fun hasTraitByClass(clazz: KClass<out Trait<*>>): Boolean = _traits.any { clazz.isInstance(it) }
+    fun hasTraitByClass(clazz: KClass<out Trait>): Boolean = _traits.any { clazz.isInstance(it) }
 
-    fun invoke(room: RoomInstance){
+    operator fun <T: TraitContext> invoke(ctx: T){
         plugin.logger.debug("Component invoked (${this.uuid})")
-        if (Thread.currentThread() != Schedulers.COMPONENT_PROCESSING.thread) {
+        ctx.component = this
+        if (!Schedulers.COMPONENT_PROCESSING.onThread()) {
             plugin.logger.debug("Invocation thread moved")
             Schedulers.COMPONENT_PROCESSING.submit {
-                invoke0(room)
+                invoke0(ctx)
             }
-        } else invoke0(room)
+        } else invoke0(ctx)
     }
 
-    abstract fun invoke0(room: RoomInstance)
+    protected open fun <T: TraitContext> invoke0(ctx: T) {
+        for (trait in _traits) {
+            if (trait !is FunctionalTrait) continue
+            trait(ctx)
+        }
+    }
 
+    @Suppress("UnstableApiUsage")
     protected val componentData = AbstractRenderer.RenderData(
         ParticleBuilder(Particle.OMINOUS_SPAWNING).extra(0.0).count(1).data(null),
         BlockDisplayRenderer.BlockRenderData(
@@ -108,8 +116,9 @@ abstract class DungeonComponent(
     )
 
     fun render(renderer: AbstractRenderer, room: RoomInstance, editor: Player) {
-        if (!hasTrait<LocatableTrait>()) return
-        val location = Vector3f(getTrait<LocatableTrait>().vector).add(room.realVector.toVector3f)
+        render0(renderer, room, editor)
+        if (!hasTrait<LocatableTrait<*>>()) return
+        val location = Vector3f(getTrait<LocatableTrait<*>>().vector).add(room.realVector.toVector3f)
         val oneUp = Vector3f(location.x, location.y + 1f, location.z)
         val world = room.realVector.world
         renderer.renderText(
@@ -144,22 +153,19 @@ fun replaceCompInStorage(old: DungeonComponent, new: DungeonComponent){
 }
 
 interface NeedsInitialized{
-    fun initialize(room: RoomInstance)
+    fun <T: TraitContext> initialize(ctx: T)
+}
+
+interface NeedsShutdown{
+    fun <T: TraitContext> shutdown(ctx: T)
 }
 
 /**
  * A class that other plugins can extend to create custom components using traits (or realistically anything)
  */
 class CustomComponent(
-    traits: Collection<Trait<*>>,
+    traits: Collection<Trait>,
     override val uuid: UUID
 ): DungeonComponent("custom", traits){
     override val question: QuestionElement = QuestionElement.Label("Cannot edit a custom component in-game")
-
-    override fun invoke0(room: RoomInstance) {
-        for (t in `$traits`){
-            if (t is FunctionalTrait) t.invoke(room, this)
-        }
-    }
-
 }

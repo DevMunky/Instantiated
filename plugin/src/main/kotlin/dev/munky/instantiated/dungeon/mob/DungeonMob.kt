@@ -15,7 +15,12 @@ abstract class DungeonMob : Identifiable {
     /**
      * Lets anyone add arbitrary persistent data to any mob.
      */
-    abstract val custom : MutableMap<String,String>
+    abstract val custom : HashMap<String,String>
+
+    /**
+     * In-case you dont have kotlin or something idk
+     */
+    val javaCustom: java.util.HashMap<String,String> get() = custom
 
     /**
      * Return true if the death is valid.

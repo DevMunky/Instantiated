@@ -8,26 +8,28 @@ import dev.munky.instantiated.edit.QuestionElement
 import org.joml.Vector3f
 
 /**
- * used to categorize components.
  *
  * the object permanence for traits is simple. Each component that needs a trait get its own instance.
  *
- * `traits are not shared across components`
+ * `traits are not shared across components. One trait can have effects over multiple [Instances][dev.munky.instantiated.dungeon.interfaces.Instance]
  *
  * Traits by themselves do **specific and niche things**, like setting a region of blocks or spawning a mob.
  * *Chaining together traits with components* is where the real functionality shines.
  */
-abstract class Trait<T: Trait<T>>(
+abstract class Trait(
     override val identifier: IdKey,
 ): Identifiable {
     constructor(
         id: String
     ): this(IdType.TRAIT.with(id))
-
-    abstract fun question(res: EditingTraitHolder<T>): QuestionElement
 }
 
-class EditingTraitHolder<T: Trait<T>>(
+interface EditableTrait<T: Trait>{
+    fun question(res: Any): QuestionElement = question(res as? EditingTraitHolder<T> ?: throw IllegalArgumentException("Incorrect cast, sadly i cant do a compile time check because of the absence of union type parameters in kotlin.")) // i have to do this because i cant use INTERSECTION TYPES
+    fun question(res: EditingTraitHolder<T>): QuestionElement
+}
+
+class EditingTraitHolder<T: Trait>(
     initTrait: T,
     val f: (T) -> Unit
 ){
@@ -38,27 +40,31 @@ class EditingTraitHolder<T: Trait<T>>(
         }
 }
 
-sealed class LocatableTrait(id: String): Trait<LocatableTrait>(id){
+sealed class LocatableTrait<T: Trait>(id: String): Trait(id), EditableTrait<T> {
     abstract val vector: Vector3f
     abstract val yaw: Float
     abstract val pitch: Float
 
     class LocationTrait(
         override val vector: Vector3f
-    ): LocatableTrait("location"){
+    ): LocatableTrait<LocationTrait>("location"){
         override val yaw: Float = 0f
         override val pitch: Float = 0f
-        override fun question(res: EditingTraitHolder<LocatableTrait>): QuestionElement = QuestionElement.ForTrait(
+        override fun question(res: EditingTraitHolder<LocationTrait>): QuestionElement = QuestionElement.ForTrait(
             this,
-            QuestionElement.Clickable("X"){
+            QuestionElement.Clickable("Click a block"){
+                val vec = PromptFactory.promptLocation("Vector3i", it)
+                res.trait = LocationTrait(Vector3f(vec))
+            },
+            QuestionElement.Clickable("X", res.trait.vector.x){
                 val x = PromptFactory.promptFloats(1, it) ?: return@Clickable
                 res.trait = LocationTrait(Vector3f(x[0], res.trait.vector.y, res.trait.vector.z))
             },
-            QuestionElement.Clickable("Y"){
+            QuestionElement.Clickable("Y", res.trait.vector.y){
                 val y = PromptFactory.promptFloats(1, it) ?: return@Clickable
                 res.trait = LocationTrait(Vector3f(res.trait.vector.x, y[0], res.trait.vector.z))
             },
-            QuestionElement.Clickable("Z"){
+            QuestionElement.Clickable("Z", res.trait.vector.z){
                 val z = PromptFactory.promptFloats(1, it) ?: return@Clickable
                 res.trait = LocationTrait(Vector3f(res.trait.vector.x, res.trait.vector.y, z[0]))
             }
@@ -69,26 +75,30 @@ sealed class LocatableTrait(id: String): Trait<LocatableTrait>(id){
         override val vector: Vector3f,
         override val yaw: Float = 0f,
         override val pitch: Float = 0f,
-    ): LocatableTrait("location-and-direction"){
-        override fun question(res: EditingTraitHolder<LocatableTrait>): QuestionElement = QuestionElement.ForTrait(
+    ): LocatableTrait<LocationAndDirectionTrait>("location-and-direction"){
+        override fun question(res: EditingTraitHolder<LocationAndDirectionTrait>): QuestionElement = QuestionElement.ForTrait(
             this,
-            QuestionElement.Clickable("X"){
+            QuestionElement.Clickable("Click a block"){
+                val vec = PromptFactory.promptLocation("Vector3i", it)
+                res.trait = LocationAndDirectionTrait(Vector3f(vec), res.trait.yaw, res.trait.pitch)
+            },
+            QuestionElement.Clickable("X", res.trait.vector.x){
                 val x = PromptFactory.promptFloats(1, it) ?: return@Clickable
-                res.trait = LocationTrait(Vector3f(x[0], res.trait.vector.y, res.trait.vector.z))
+                res.trait = LocationAndDirectionTrait(Vector3f(x[0], res.trait.vector.y, res.trait.vector.z), yaw, pitch)
             },
-            QuestionElement.Clickable("Y"){
+            QuestionElement.Clickable("Y", res.trait.vector.y){
                 val y = PromptFactory.promptFloats(1, it) ?: return@Clickable
-                res.trait = LocationTrait(Vector3f(res.trait.vector.x, y[0], res.trait.vector.z))
+                res.trait = LocationAndDirectionTrait(Vector3f(res.trait.vector.x, y[0], res.trait.vector.z), yaw, pitch)
             },
-            QuestionElement.Clickable("Z"){
+            QuestionElement.Clickable("Z", res.trait.vector.z){
                 val z = PromptFactory.promptFloats(1, it) ?: return@Clickable
-                res.trait = LocationTrait(Vector3f(res.trait.vector.x, res.trait.vector.y, z[0]))
+                res.trait = LocationAndDirectionTrait(Vector3f(res.trait.vector.x, res.trait.vector.y, z[0]), yaw, pitch)
             },
-            QuestionElement.Clickable("Yaw"){
+            QuestionElement.Clickable("Yaw", res.trait.yaw){
                 val yaw = PromptFactory.promptFloats(1, it) ?: return@Clickable
                 res.trait = LocationAndDirectionTrait(res.trait.vector, yaw[0], pitch)
             },
-            QuestionElement.Clickable("Pitch"){
+            QuestionElement.Clickable("Pitch", res.trait.pitch){
                 val pitch = PromptFactory.promptFloats(1, it) ?: return@Clickable
                 res.trait = LocationAndDirectionTrait(res.trait.vector, yaw, pitch[0])
             }

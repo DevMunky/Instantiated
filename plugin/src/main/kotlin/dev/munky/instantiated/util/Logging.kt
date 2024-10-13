@@ -46,7 +46,5 @@ class CustomLogger(private val debug: () -> Boolean, name: String) : DebugLogger
     }
 
     override fun log(level: Level, msg: String, thrown: Throwable) = thrown.log(msg)
-
-    fun logThrowable(preface: String, thrown: Throwable) = thrown.log(preface)
 }
 

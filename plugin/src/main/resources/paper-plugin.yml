@@ -2,7 +2,7 @@ name: Instantiated
 version: '${version}'
 main: dev.munky.instantiated.Instantiated
 api-version: '1.21'
-description: "The better dungeon solution for Minecraft. Create dungeons in-game, or directly through configuration in dungeons.json with supreme error handling."
+description: "The better dungeon solution for Minecraft. Create dungeons through in-game editing and experience the very best."
 loader: dev.munky.instantiated.InstantiatedPluginLoader
 authors:
   - "https://github.com/DevMunky/Instantiated-Public"

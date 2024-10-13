@@ -21,7 +21,6 @@ import dev.munky.instantiated.dungeon.DungeonManager
 import dev.munky.instantiated.dungeon.interfaces.Instance
 import dev.munky.instantiated.dungeon.interfaces.RoomInstance
 import dev.munky.instantiated.dungeon.mob.Id2WeakDungeonMobMap
-import dev.munky.instantiated.easyGet
 import dev.munky.instantiated.event.DungeonCacheEvent
 import dev.munky.instantiated.exception.DungeonException
 import dev.munky.instantiated.exception.DungeonExceptions
@@ -33,6 +32,7 @@ import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.entity.Player
 import org.joml.Vector3f
+import org.koin.core.component.get
 import java.io.FileInputStream
 import java.util.*
 
@@ -45,7 +45,7 @@ internal constructor(
     cache : Boolean = false
 ) : Instance {
     companion object{
-        val MANAGER: DungeonManager = easyGet<DungeonManager>()
+        val MANAGER: DungeonManager = plugin.get<DungeonManager>()
     }
     override val uuid: UUID = UUID.randomUUID()
     override var cache = if (cache) Instance.CacheState.CACHED else Instance.CacheState.NEVER_CACHED
@@ -168,6 +168,9 @@ internal constructor(
                 return
             }
             plugin.logger.debug("Re-caching instance of '$identifier' instead of explicit removal")
+            for (room in rooms) {
+                room.value.remove()
+            }
             for (roomFormat in format.rooms.values) {
                 rooms[roomFormat.identifier] = roomFormat.instance(this)
             }

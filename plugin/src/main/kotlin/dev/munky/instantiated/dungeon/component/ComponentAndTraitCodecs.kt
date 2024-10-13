@@ -28,14 +28,14 @@ object ComponentCodecs: CodecHolder({"Component '$it' has no registered codec"})
         },
         {
             check(it is JsonObject) {"Not a json object"}
-            val traits = ArrayList<Trait<*>>()
+            val traits = ArrayList<Trait>()
             val uuidE = it.get("uuid")
             check(uuidE is JsonPrimitive) {"Not a json primitive"}
             val uuid = UUID.fromString(uuidE.asString)
             for (t in it.asMap()){
                 check(t.value is JsonObject) {"Not a json object"}
                 val type = t.key
-                val codec = TraitCodecs.get<Trait<*>>(type)
+                val codec = TraitCodecs.get<Trait>(type)
                 val trait = codec.decode(t.value)
                 traits.add(trait)
             }
@@ -102,14 +102,14 @@ object TraitCodecs: CodecHolder({"Trait '$it' has no registered codec"}){ // lit
     )
     val ROOM_ENTER_TRIGGER = JsonCodec.composite(
         RoomEnterTriggerTrait::class,
-        "uses", CommonJsonCodecs.INT, EventTriggerTrait<RoomEnterTriggerTrait, *>::uses,
-        "targets", CommonJsonCodecs.UUID_LIST, EventTriggerTrait<RoomEnterTriggerTrait, *>::targets,
+        "uses", CommonJsonCodecs.INT, EventTriggerTrait<*>::uses,
+        "targets", CommonJsonCodecs.UUID_LIST, EventTriggerTrait<*>::targets,
         ::RoomEnterTriggerTrait
     )
     val ROOM_LEAVE_TRIGGER = JsonCodec.composite(
         RoomLeaveTriggerTrait::class,
-        "uses", CommonJsonCodecs.INT, EventTriggerTrait<RoomLeaveTriggerTrait, *>::uses,
-        "targets", CommonJsonCodecs.UUID_LIST, EventTriggerTrait<RoomLeaveTriggerTrait, *>::targets,
+        "uses", CommonJsonCodecs.INT, EventTriggerTrait<*>::uses,
+        "targets", CommonJsonCodecs.UUID_LIST, EventTriggerTrait<*>::targets,
         ::RoomLeaveTriggerTrait
     )
     val SET_BLOCKS = JsonCodec.composite(
@@ -123,8 +123,8 @@ object TraitCodecs: CodecHolder({"Trait '$it' has no registered codec"}){ // lit
     val DUNGEON_MOB_KILL_TRIGGER = JsonCodec.composite(
         DungeonMobKillTriggerTrait::class,
         "mob", CommonJsonCodecs.STRING, { it.mob.key },
-        "uses", CommonJsonCodecs.INT, EventTriggerTrait<DungeonMobKillTriggerTrait, *>::uses,
-        "targets", CommonJsonCodecs.UUID_LIST, EventTriggerTrait<DungeonMobKillTriggerTrait, *>::targets,
+        "uses", CommonJsonCodecs.INT, EventTriggerTrait<*>::uses,
+        "targets", CommonJsonCodecs.UUID_LIST, EventTriggerTrait<*>::targets,
         { id, uses, targets ->
             DungeonMobKillTriggerTrait(IdType.MOB with id, uses, targets)
         }

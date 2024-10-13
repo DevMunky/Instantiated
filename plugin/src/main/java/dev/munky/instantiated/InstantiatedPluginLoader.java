@@ -2,19 +2,11 @@ package dev.munky.instantiated;
 
 import io.papermc.paper.plugin.loader.PluginClasspathBuilder;
 import io.papermc.paper.plugin.loader.PluginLoader;
-import io.papermc.paper.plugin.loader.library.ClassPathLibrary;
-import io.papermc.paper.plugin.loader.library.impl.JarLibrary;
 import io.papermc.paper.plugin.loader.library.impl.MavenLibraryResolver;
-import org.bukkit.Bukkit;
 import org.eclipse.aether.artifact.DefaultArtifact;
 import org.eclipse.aether.graph.Dependency;
-import org.eclipse.aether.repository.LocalRepository;
-import org.eclipse.aether.repository.LocalRepositoryManager;
 import org.eclipse.aether.repository.RemoteRepository;
 import org.jetbrains.annotations.NotNull;
-
-import java.io.File;
-import java.util.Arrays;
 
 /**
  * This is a required class. It must be implemented in Java.
@@ -43,7 +35,7 @@ public class InstantiatedPluginLoader implements PluginLoader {
             ).build();
             addDependency(classpathBuilder,"org.jetbrains.kotlin:kotlin-reflect:2.0.0",central,sonatype);
             addDependency(classpathBuilder,"org.jetbrains.kotlin:kotlin-stdlib:2.0.0",central,sonatype);
-            addDependency(classpathBuilder,"dev.jorel:commandapi-bukkit-shade-mojang-mapped:9.5.1",central,codemc);
+            addDependency(classpathBuilder,"dev.jorel:commandapi-bukkit-shade-mojang-mapped:9.5.3",central,codemc);
             // addDependency(classpathBuilder, "io.insert-koin:koin-core:3.5.6", central); // Paper hates Koin
       }
       public void addDependency(PluginClasspathBuilder classpathBuilder, String artifact, RemoteRepository... repositories) {

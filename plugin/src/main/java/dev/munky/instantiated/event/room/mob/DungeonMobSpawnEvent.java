@@ -13,6 +13,11 @@ import org.jetbrains.annotations.Nullable;
 import java.lang.ref.WeakReference;
 import java.util.function.Consumer;
 
+/**
+ * Always called on server thread for your convenience :)
+ * <p>
+ * Literally everything else is off main
+ */
 public class DungeonMobSpawnEvent extends DungeonRoomEvent {
     public static HandlerList handlers = new HandlerList();
     @Override

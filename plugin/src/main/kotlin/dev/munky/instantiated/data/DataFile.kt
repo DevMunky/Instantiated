@@ -3,12 +3,12 @@ package dev.munky.instantiated.data
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
 import dev.munky.instantiated.common.logging.NotYetInitializedException
-import dev.munky.instantiated.common.util.log
 import dev.munky.instantiated.data.config.TheConfig
 import dev.munky.instantiated.plugin
 import org.bukkit.configuration.file.YamlConfiguration
 import org.koin.core.component.get
 import java.io.File
+import java.lang.ref.WeakReference
 
 abstract class DataFile(
     val file: File
@@ -28,11 +28,9 @@ abstract class DataFile(
     private var _data: Result<ByteArray> = Result.failure(NotYetInitializedException())
 
     private fun tryCreateFile(){
-        val resOnly = try{ if (this is TheConfig) false else plugin.get<TheConfig>().RESOURCE_DATA_FILES.value }catch (e:Exception){
-            e.log("asdasdasdas")
-            return
-        }
+        val resOnly = if (this is TheConfig) false else plugin.get<TheConfig>().resourceDataFiles.value
         if (!file.exists() || file.length() == 0L){
+            file.parentFile.mkdirs()
             file.createNewFile()
             plugin.javaClass.classLoader.getResourceAsStream(file.name)?.use { inputStream ->
                 file.outputStream().buffered().use { outputStream ->
@@ -48,14 +46,13 @@ abstract class DataFile(
             } else file.readBytes()
         }
         _yaml = kotlin.runCatching {
-            check(_data.isSuccess) { "Data did not load" }
-            // bukkit static yaml LOGS instantly so i just do what it does here
+            check(_data.isSuccess) { "file data did not load" }
             val yaml = YamlConfiguration()
             yaml.load(file)
             yaml
         }
         _json = kotlin.runCatching {
-            check(_data.isSuccess) { "Data did not load" }
+            check(_data.isSuccess) { "file data did not load" }
             JsonParser.parseString(String(data.getOrThrow()))
         }
     }
@@ -73,6 +70,8 @@ class ConfigurationValue<T : Any>(
     private val getter: (Any) -> T
 ) {
     private var _value: T? = null
+
+    private var _previous = WeakReference<T?>(null)
 
     /**
      * Load a value from a configuration
@@ -94,9 +93,20 @@ class ConfigurationValue<T : Any>(
         return ret
     }
 
+    fun push(value: T) {
+        check(_previous.refersTo(null)) { "Cannot push consecutively! Please pop before pushing." }
+        _previous = WeakReference(_value)
+        _value = value
+    }
+
+    fun pop() {
+        check(_previous.refersTo(null))
+        _value = _previous.get()
+    }
+
     private fun loadValue(config: YamlConfiguration){
         val any = config.get(path)
-        val resOnly = if (this == plugin.get<TheConfig>().RESOURCE_DATA_FILES) false else plugin.get<TheConfig>().RESOURCE_DATA_FILES.value
+        val resOnly = if (this == plugin.get<TheConfig>().resourceDataFiles) false else plugin.get<TheConfig>().resourceDataFiles.value
         this._value =
             if (resOnly) def
             else if (any == null) {

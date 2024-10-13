@@ -3,6 +3,8 @@ package dev.munky.instantiated.dungeon.sstatic
 import dev.munky.instantiated.common.structs.IdKey
 import dev.munky.instantiated.data.loader.ComponentStorage
 import dev.munky.instantiated.dungeon.component.NeedsInitialized
+import dev.munky.instantiated.dungeon.component.NeedsShutdown
+import dev.munky.instantiated.dungeon.component.TraitContext
 import dev.munky.instantiated.dungeon.interfaces.RoomInstance
 import dev.munky.instantiated.plugin
 import dev.munky.instantiated.util.toLocation
@@ -24,11 +26,15 @@ class StaticRoomInstance(
     init{
         val components = plugin.get<ComponentStorage>()[this.format] ?: ArrayList()
         for (c in components){
-            if (c is NeedsInitialized) c.initialize(this)
+            if (c is NeedsInitialized) c.initialize(TraitContext(this, null))
         }
     }
 
     fun remove() {
+        val components = plugin.get<ComponentStorage>()[this.format] ?: ArrayList()
+        for (c in components){
+            if (c is NeedsShutdown) c.shutdown(TraitContext(this, null))
+        }
         parent.activeMobs[identifier].keys.forEach {
             it.remove() // mark living entity for removal if present
         }

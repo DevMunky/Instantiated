@@ -1,7 +1,5 @@
 package dev.munky.instantiated.dungeon
 
-import com.sk89q.worldedit.bukkit.WorldEditPlugin
-import dev.munky.instantiated.Instantiated.Companion.instantiated
 import dev.munky.instantiated.common.structs.IdKey
 import dev.munky.instantiated.common.structs.IdType
 import dev.munky.instantiated.common.util.log
@@ -41,27 +39,23 @@ class DungeonManagerImpl : DungeonManager {
     ): Instance? = instances.firstOrNull { it.players.contains(player) }
 
     override fun cleanup() {
-        if (Bukkit.getPluginManager().isPluginEnabled(WorldEditPlugin.getInstance())) {
-            for (instance in instances) {
-                for (player in instance.onlinePlayers) {
-                    instance.removePlayer(player.uniqueId) // probably fine because i delete and recreate world on startup anyhow
-                }
+        for (instance in instances) {
+            for (player in instance.onlinePlayers) {
+                instance.removePlayer(player.uniqueId) // probably fine because i delete and recreate world on startup anyhow
             }
-        }else{
-            plugin.logger.warning("Worldedit disabled before us, sub optimal")
         }
         val context =
-            if (instantiated.state.isDisabled) Instance.RemovalReason.PLUGIN_DISABLE
+            if (plugin.state.isDisabled) Instance.RemovalReason.PLUGIN_DISABLE
             else Instance.RemovalReason.PLUGIN_RELOAD
 
         val currentInstances = ArrayList(instances)
-        val results = mutableListOf<Result<Unit>>()
-        currentInstances.forEach{ instance ->
-            results.add(kotlin.runCatching {
+        for (instance in currentInstances){
+            try{
                 instance.remove(context, false)
-            })
+            }catch (t: Throwable){
+                t.log("Exception while cleaning up instance")
+            }
         }
-        results.forEach { it.onFailure { it.log("Exception while cleaning up instance") } }
     }
 
     override fun shutdown() = runCatching {
@@ -84,7 +78,7 @@ class DungeonManagerImpl : DungeonManager {
     override fun startInstance(
         id: String,
         ops: Format.InstanceOption,
-        players: List<UUID>
+        players: Collection<UUID>
     ) = runCatching {
         val key = IdType.DUNGEON.with(id)
         startInstance(get<FormatStorage>()[key] ?: throw DungeonExceptions.ComponentNotFound.consume(key), ops, players).getOrThrow()
@@ -95,7 +89,7 @@ class DungeonManagerImpl : DungeonManager {
     override fun startInstance(
         format: Format,
         ops: Format.InstanceOption,
-        players: List<UUID>
+        players: Collection<UUID>
     ): Result<Instance> = runCatching {
         players.forEach { checkPlayer(it) }
         val instance = createInstance(format, nextLocation(), ops)
@@ -128,7 +122,7 @@ class DungeonManagerImpl : DungeonManager {
                 n += 2
             }
             // get the current x and y.
-            val gridSize = get<TheConfig>().DUNGEON_GRID_SIZE.value
+            val gridSize = get<TheConfig>().dungeonGridSize.value
             when (d) {
                 "right" -> x += gridSize
                 "left" -> x -= gridSize
@@ -156,22 +150,26 @@ val Int.fromTicksToMillis : Long get()  {
 
 interface DungeonManager : KoinComponent {
     fun initialize()
-    fun startInstance(id: String,
-                      ops: Format.InstanceOption,
-                      players: List<UUID>): Result<Instance>
-    fun startInstance(format: Format,
-                      ops: Format.InstanceOption,
-                      players: List<UUID>): Result<Instance>
+    fun startInstance(
+        id: String,
+        ops: Format.InstanceOption,
+        players: Collection<UUID>
+    ): Result<Instance>
+    fun startInstance(
+        format: Format,
+        ops: Format.InstanceOption,
+        players: Collection<UUID>
+    ): Result<Instance>
     fun getCurrentDungeon(player: UUID): Instance?
     fun cleanup()
     fun shutdown()
 
     val dungeonWorld: World
-    val instances: List<Instance>
+    val instances: Collection<Instance>
 
     // return Result<World> in the future for better error handling
     fun createDungeonWorld(): World {
-        val worldName = get<TheConfig>().DUNGEON_WORLD_NAME.value
+        val worldName = get<TheConfig>().dungeonWorldName.value
         var dungeonWorld: World? = Bukkit.getWorld(worldName)
         if (dungeonWorld == null && Bukkit.getWorlds().isNotEmpty()) {
             val creator = WorldCreator.name(worldName)

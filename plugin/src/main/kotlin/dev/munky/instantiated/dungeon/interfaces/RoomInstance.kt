@@ -4,12 +4,12 @@ import dev.munky.instantiated.common.structs.Box
 import dev.munky.instantiated.common.structs.Identifiable
 import dev.munky.instantiated.data.IntraDataStores.EntityIntraData.setIntraData
 import dev.munky.instantiated.data.config.TheConfig
+import dev.munky.instantiated.data.loader.caption
 import dev.munky.instantiated.dungeon.DungeonManager
 import dev.munky.instantiated.dungeon.mob.DungeonMob
 import dev.munky.instantiated.event.ListenerFactory
 import dev.munky.instantiated.event.room.mob.DungeonMobKillEvent
 import dev.munky.instantiated.exception.DungeonExceptions
-import dev.munky.instantiated.lang.caption
 import dev.munky.instantiated.plugin
 import dev.munky.instantiated.scheduling.Schedulers
 import dev.munky.instantiated.util.fromMini
@@ -37,13 +37,14 @@ interface RoomInstance : Identifiable {
     var areMobsSpawned : Boolean
     val parent : Instance
     val format : RoomFormat
+
     /**
      * @return true if the dungeon mob passes all checks and the death is legitimate, false otherwise.
      */
     fun registerDungeonMobDeath(room: RoomInstance, dungeonMob: DungeonMob, victim: LivingEntity, killer: LivingEntity) : Boolean {
         try{
             parent.activeMobs[identifier].remove(victim) ?: throw DungeonExceptions.Generic.consume("Dungeon mob is not in the active mob list")
-            val event = DungeonMobKillEvent(this, victim, dungeonMob)
+            val event = DungeonMobKillEvent(this, killer, victim, dungeonMob)
             event.callEvent()
             if (event.isCancelled) return false
             try {
@@ -87,8 +88,8 @@ interface RoomInstance : Identifiable {
             itemEntity.setIntraData(DungeonManager.NO_DESPAWN_ENTITY, Unit)
             itemEntity.persistentDataContainer.set(DungeonManager.INIT_TIME, PersistentDataType.LONG, plugin.initTime)
             itemEntity.itemStack = keyItem
-            if (plugin.get<TheConfig>().KEYS_GLOW.value) {
-                setGlowColorFor(itemEntity, plugin.get<TheConfig>().KEYS_GLOW_COLOR.value)
+            if (plugin.get<TheConfig>().keysGlow.value) {
+                setGlowColorFor(itemEntity, plugin.get<TheConfig>().keysGlowColor.value)
             }
         }
         Schedulers.SYNC.submit(15.seconds) {

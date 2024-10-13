@@ -18,15 +18,10 @@ public class TestingMobs {
                     Instantiated.getInstantiated().getLogger().warning("[TESTINGMOBS] Entity class is null, type is not");
                     return;
                 }
+                
                 e.setLivingEntity(type.getEntityClass(),entity->{
                     entity.customName();
                     TextDisplay display = e.getSpawnLocation().getWorld().spawn(e.getSpawnLocation(), TextDisplay.class);
-                    //display.setTransformation(new Transformation(
-                    //      new Vector3f(0,0.5f,0),
-                    //      new AxisAngle4f(),
-                    //      new Vector3f(),
-                    //      new AxisAngle4f()
-                    //));
                     display.text(ComponentUtil.toComponent("<green>" + e.getDungeonMob().getIdentifier() + "<newline><blue>Test mob:" + type));
                     display.setBillboard(Display.Billboard.CENTER);
                     boolean riding = entity.addPassenger(display);
