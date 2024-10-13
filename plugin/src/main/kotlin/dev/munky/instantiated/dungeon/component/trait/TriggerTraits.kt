@@ -1,12 +1,16 @@
 package dev.munky.instantiated.dungeon.component.trait
 
 import dev.munky.instantiated.common.structs.IdKey
+import dev.munky.instantiated.common.structs.IdType
 import dev.munky.instantiated.data.loader.ComponentStorage
+import dev.munky.instantiated.data.loader.MobStorage
+import dev.munky.instantiated.dungeon.component.DungeonComponent
 import dev.munky.instantiated.dungeon.component.TraitContext
 import dev.munky.instantiated.dungeon.component.TraitContextWithPlayer
 import dev.munky.instantiated.dungeon.currentDungeon
 import dev.munky.instantiated.dungeon.interfaces.Instance
 import dev.munky.instantiated.dungeon.interfaces.RoomInstance
+import dev.munky.instantiated.edit.PromptFactory
 import dev.munky.instantiated.edit.QuestionElement
 import dev.munky.instantiated.event.DungeonCacheEvent
 import dev.munky.instantiated.event.InstantiatedStateEvent
@@ -17,6 +21,8 @@ import dev.munky.instantiated.event.room.DungeonRoomPlayerLeaveEvent
 import dev.munky.instantiated.event.room.mob.DungeonMobKillEvent
 import dev.munky.instantiated.plugin
 import dev.munky.instantiated.scheduling.Schedulers
+import dev.munky.instantiated.util.send
+import net.kyori.adventure.audience.Audience
 import org.bukkit.entity.Player
 import org.bukkit.event.Event
 import org.bukkit.event.HandlerList
@@ -138,6 +144,8 @@ abstract class EventTriggerTrait<E: Event>(
     }
 }
 
+private val componentStorage = plugin.get<ComponentStorage>()
+
 class RoomEnterTriggerTrait(
     uses: Int,
     override val targets: List<UUID>
@@ -146,7 +154,48 @@ class RoomEnterTriggerTrait(
     override fun question(res: EditingTraitHolder<RoomEnterTriggerTrait>): QuestionElement = QuestionElement.ForTrait(
         this,
         QuestionElement.Clickable("Uses"){
+            val uses = PromptFactory.promptIntegers(1, it)
+            res.trait = RoomEnterTriggerTrait(uses[0], res.trait.targets)
+        },
+        targetQuestion(res) { newTargets, res->
+            RoomEnterTriggerTrait(res.trait.uses, newTargets)
+        }
+    )
+}
 
+private fun <T: EventTriggerTrait<*>> targetQuestion(res: EditingTraitHolder<T>, f: (List<UUID>, EditingTraitHolder<T>) -> T): QuestionElement {
+    return QuestionElement.ListOf("Targets",
+        QuestionElement.Clickable("Add target") {
+            val q = getComponents("Targets to add") { player, comp ->
+                val targets = res.trait.targets.toMutableList()
+                targets.add(comp.uuid)
+                res.trait = f(targets, res)
+            }
+            q.build().send(it)
+        },
+        QuestionElement.Clickable("Remove target") {
+            val q = getComponents("Targets to remove") { player, comp ->
+                val targets = res.trait.targets.toMutableList()
+                targets.remove(comp.uuid)
+                res.trait = f(targets, res)
+            }
+            q.build().send(it)
+        }
+    )
+}
+
+private fun getComponents(msg: String, f: (Audience, DungeonComponent) -> Unit): QuestionElement {
+    return QuestionElement.ListOf(msg,
+        run {
+            val list = ArrayList<QuestionElement>()
+            for (entry in componentStorage) {
+                for (comp in entry.value) {
+                    list.add(QuestionElement.Clickable("Room '${entry.key.identifier.key}': Component '${comp.identifier.key}'"){
+                        f(it, comp)
+                    })
+                }
+            }
+            list
         }
     )
 }
@@ -159,10 +208,16 @@ class RoomLeaveTriggerTrait(
     override fun question(res: EditingTraitHolder<RoomLeaveTriggerTrait>): QuestionElement = QuestionElement.ForTrait(
         this,
         QuestionElement.Clickable("Uses"){
-
+            val uses = PromptFactory.promptIntegers(1, it)
+            res.trait = RoomLeaveTriggerTrait(uses[0], res.trait.targets)
+        },
+        targetQuestion(res) { newTargets, res->
+            RoomLeaveTriggerTrait(res.trait.uses, newTargets)
         }
     )
 }
+
+private val mobStorage = plugin.get<MobStorage>()
 
 class DungeonMobKillTriggerTrait(
     val mob: IdKey,
@@ -177,10 +232,18 @@ class DungeonMobKillTriggerTrait(
     override fun question(res: EditingTraitHolder<DungeonMobKillTriggerTrait>): QuestionElement = QuestionElement.ForTrait(
         this,
         QuestionElement.Clickable("Mob"){
-
+            val mob = IdType.MOB with PromptFactory.promptString("Mob identifier", it)
+            if (!mobStorage.containsKey(mob)) {
+                throw IllegalArgumentException("Mob '${mob.key}' does not exist")
+            }
+            res.trait = DungeonMobKillTriggerTrait(mob, res.trait.uses, res.trait.targets)
         },
         QuestionElement.Clickable("Uses"){
-
+            val uses = PromptFactory.promptIntegers(1, it)
+            res.trait = DungeonMobKillTriggerTrait(res.trait.mob, uses[0], res.trait.targets)
+        },
+        targetQuestion(res) { newTargets, res->
+            DungeonMobKillTriggerTrait(res.trait.mob, res.trait.uses, newTargets)
         }
     )
 }
