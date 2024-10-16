@@ -25,12 +25,10 @@ class SpawnerComponent(
     override val question = QuestionElement.ListOf(
         "Spawner Component",
         question<LocatableTrait.LocationAndDirectionTrait> {
-            val new = SpawnerComponent(it, getTrait(), uuid)
-            replaceCompInStorage(this, new)
+            SpawnerComponent(it, getTrait(), uuid)
         },
         question<SpawnerTrait> {
-            val new = SpawnerComponent(getTrait(), it, uuid)
-            replaceCompInStorage(this, new)
+            SpawnerComponent(getTrait(), it, uuid)
         }
     )
 
@@ -57,8 +55,7 @@ class DoorComponent(
     override val question = QuestionElement.ListOf(
         "Door Component",
         question<SetBlocksTrait> {
-            val new = DoorComponent(it, uuid)
-            replaceCompInStorage(this, new)
+            DoorComponent(it, uuid)
         }
     )
 
@@ -95,8 +92,7 @@ class SendCommandComponent(
     override val question: QuestionElement = QuestionElement.ListOf(
         "Send Command Component",
         question<SendCommandTrait> {
-            val new = SendCommandComponent(it, uuid)
-            replaceCompInStorage(this, new)
+            SendCommandComponent(it, uuid)
         }
     )
 }

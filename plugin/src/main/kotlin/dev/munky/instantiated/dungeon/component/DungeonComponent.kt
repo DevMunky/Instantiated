@@ -51,10 +51,13 @@ abstract class DungeonComponent(
 
     abstract val question: QuestionElement
 
-    inline fun <reified T: Trait> question(noinline f: (T) -> Unit): QuestionElement{
+    inline fun <reified T: Trait> question(noinline f: (T) -> DungeonComponent): QuestionElement{
         val trait = getTrait<T>()
         if (trait !is EditableTrait<*>) throw IllegalStateException("Editable Trait does not extend Trait")
-        val hold = EditingTraitHolder(trait, f)
+        val hold = EditingTraitHolder(trait) {
+            val new = f(trait)
+            replaceCompInStorage(this, new)
+        }
         val question = trait.question(hold)
         return question
     }

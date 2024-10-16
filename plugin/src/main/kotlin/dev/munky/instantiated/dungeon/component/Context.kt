@@ -8,6 +8,10 @@ open class TraitContext(
     var component: DungeonComponent?
 )
 
+/**
+ * When resolving the context within a trait, make the component null.
+ * It will be changed to an actual component when a component gets the context back.
+ */
 class TraitContextWithPlayer(
     room: RoomInstance,
     component: DungeonComponent?,

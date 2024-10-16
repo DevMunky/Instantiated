@@ -78,7 +78,7 @@ class EventManager: KoinComponent {
         data object PlayerJoin : EventHandler<PlayerJoinEvent>(PlayerJoinEvent::class) {
             override fun handle(event: PlayerJoinEvent) {
                 val instance = event.player.currentDungeon
-                if (instance == null) {
+                if (instance == null && (event.player.world.name == MANAGER.dungeonWorld.name)) {
                     // TODO maybe make this location editable
                     event.player.teleport(Bukkit.getWorlds().first().spawnLocation)
                     plugin.logger.debug("Moved '${event.player.name}' out of instancing world (not in instance)")

@@ -63,7 +63,7 @@ class SpawnerTrait(
     val quantity: IntRange = 1..1,
     val radius: Float = 0f
 ): FunctionalTrait("spawner"), EditableTrait<SpawnerTrait> {
-    override fun question(res: EditingTraitHolder<SpawnerTrait>): QuestionElement = QuestionElement.ForTrait(
+    override fun question(eth: EditingTraitHolder<SpawnerTrait>): QuestionElement = QuestionElement.ForTrait(
         this,
         QuestionElement.Clickable("Mob"){
             val id = PromptFactory.promptString("Mob Id", it)
@@ -73,15 +73,15 @@ class SpawnerTrait(
                 it.sendMessage("Mob `$id` does not exist".asComponent)
                 return@Clickable
             }
-            res.trait = SpawnerTrait(mob, res.trait.quantity, res.trait.radius)
+            eth.trait = SpawnerTrait(mob, eth.trait.quantity, eth.trait.radius)
         },
         QuestionElement.Clickable("Quantity"){
             val q = PromptFactory.promptIntegers(2, it)
-            res.trait = SpawnerTrait(res.trait.mob, q[0]..q[1], res.trait.radius)
+            eth.trait = SpawnerTrait(eth.trait.mob, q[0]..q[1], eth.trait.radius)
         },
         QuestionElement.Clickable("Radius"){
             val rad = PromptFactory.promptFloats(1, it)
-            res.trait = SpawnerTrait(res.trait.mob, res.trait.quantity, rad[0])
+            eth.trait = SpawnerTrait(eth.trait.mob, eth.trait.quantity, rad[0])
         }
     )
 
@@ -173,15 +173,15 @@ class SetBlocksTrait(
     val isOpen: (RoomInstance) -> Boolean = { _isOpen[it.hashCode()] }
     private val _isOpen = Int2BooleanArrayMap()
 
-    override fun question(res: EditingTraitHolder<SetBlocksTrait>): QuestionElement = QuestionElement.ForTrait(
+    override fun question(eth: EditingTraitHolder<SetBlocksTrait>): QuestionElement = QuestionElement.ForTrait(
         this,
         QuestionElement.Clickable("Open block"){
             val block = PromptFactory.promptRegistry(RegistryKey.BLOCK, it)
-            res.trait = SetBlocksTrait(block, res.trait.closeType, res.trait.changeFunction, res.trait.blocks)
+            eth.trait = SetBlocksTrait(block, eth.trait.closeType, eth.trait.changeFunction, eth.trait.blocks)
         },
         QuestionElement.Clickable("Close block"){
             val block = PromptFactory.promptRegistry(RegistryKey.BLOCK, it)
-            res.trait = SetBlocksTrait(res.trait.openType, block, res.trait.changeFunction, res.trait.blocks)
+            eth.trait = SetBlocksTrait(eth.trait.openType, block, eth.trait.changeFunction, eth.trait.blocks)
         },
         QuestionElement.Clickable("Set blocks"){
             if (it !is Player) throw IllegalStateException("how did non player click dis")
@@ -200,7 +200,7 @@ class SetBlocksTrait(
             "Set change-function",
             ChangeFunction.entries.map { func ->
                 QuestionElement.Clickable(func.name){
-                    res.trait = SetBlocksTrait(res.trait.openType, res.trait.closeType, func, res.trait.blocks)
+                    eth.trait = SetBlocksTrait(eth.trait.openType, eth.trait.closeType, func, eth.trait.blocks)
                 }
             }
         )
@@ -310,14 +310,14 @@ class SendCommandTrait(
         }
     }
 
-    override fun question(res: EditingTraitHolder<SendCommandTrait>): QuestionElement = QuestionElement.ForTrait(
+    override fun question(eth: EditingTraitHolder<SendCommandTrait>): QuestionElement = QuestionElement.ForTrait(
         this,
         QuestionElement.Clickable("Command", command) {
             val cmd = PromptFactory.promptString("command", it)
-            res.trait = SendCommandTrait(cmd, res.trait.playerDriven)
+            eth.trait = SendCommandTrait(cmd, eth.trait.playerDriven)
         },
         QuestionElement.Clickable("Player Needed", playerDriven){
-            res.trait = SendCommandTrait(res.trait.command, !res.trait.playerDriven)
+            eth.trait = SendCommandTrait(eth.trait.command, !eth.trait.playerDriven)
         }
     )
 }

@@ -1,8 +1,6 @@
 package dev.munky.instantiated.dungeon.component
 
-import dev.munky.instantiated.dungeon.component.trait.DungeonMobKillTriggerTrait
-import dev.munky.instantiated.dungeon.component.trait.RoomEnterTriggerTrait
-import dev.munky.instantiated.dungeon.component.trait.RoomLeaveTriggerTrait
+import dev.munky.instantiated.dungeon.component.trait.*
 import dev.munky.instantiated.edit.QuestionElement
 import java.util.*
 
@@ -14,8 +12,7 @@ class TriggerOnRoomEnterComponent(
     override val question: QuestionElement = QuestionElement.ListOf(
         "room enter",
         question<RoomEnterTriggerTrait> {
-            val new = TriggerOnRoomEnterComponent(it, uuid)
-            replaceCompInStorage(this, new)
+            TriggerOnRoomEnterComponent(it, uuid)
         }
     )
 }
@@ -28,8 +25,7 @@ class TriggerOnRoomLeaveComponent(
     override val question: QuestionElement = QuestionElement.ListOf(
         "room leave",
         question<RoomLeaveTriggerTrait> {
-            val new = TriggerOnRoomLeaveComponent(it, uuid)
-            replaceCompInStorage(this, new)
+            TriggerOnRoomLeaveComponent(it, uuid)
         }
     )
 }
@@ -42,8 +38,23 @@ class TriggerOnDungeonMobKillComponent(
     override val question: QuestionElement = QuestionElement.ListOf(
         "mob kill",
         question<DungeonMobKillTriggerTrait> {
-            val new = TriggerOnDungeonMobKillComponent(it, uuid)
-            replaceCompInStorage(this, new)
+            TriggerOnDungeonMobKillComponent(it, uuid)
+        }
+    )
+}
+
+class TriggerOnBlockInteractComponent(
+    interactTrait: InteractWithBlockTriggerTrait,
+    location: LocatableTrait.LocationTrait,
+    override val uuid: UUID
+): DungeonComponent("on-block-interact", listOf(interactTrait)){
+    override val question: QuestionElement = QuestionElement.ListOf(
+        "interact with block",
+        question<InteractWithBlockTriggerTrait> {
+            TriggerOnBlockInteractComponent(it, getTrait(), uuid)
+        },
+        question<LocatableTrait.LocationTrait> {
+            TriggerOnBlockInteractComponent(getTrait(), it, uuid)
         }
     )
 }

@@ -25,8 +25,8 @@ abstract class Trait(
 }
 
 interface EditableTrait<T: Trait>{
-    fun question(res: Any): QuestionElement = question(res as? EditingTraitHolder<T> ?: throw IllegalArgumentException("Incorrect cast, sadly i cant do a compile time check because of the absence of union type parameters in kotlin.")) // i have to do this because i cant use INTERSECTION TYPES
-    fun question(res: EditingTraitHolder<T>): QuestionElement
+    fun question(eth: Any): QuestionElement = question(eth as? EditingTraitHolder<T> ?: throw IllegalArgumentException("Incorrect cast, sadly i cant do a compile time check because of the absence of union type parameters in kotlin.")) // i have to do this because i cant use INTERSECTION TYPES
+    fun question(eth: EditingTraitHolder<T>): QuestionElement
 }
 
 class EditingTraitHolder<T: Trait>(
@@ -50,23 +50,23 @@ sealed class LocatableTrait<T: Trait>(id: String): Trait(id), EditableTrait<T> {
     ): LocatableTrait<LocationTrait>("location"){
         override val yaw: Float = 0f
         override val pitch: Float = 0f
-        override fun question(res: EditingTraitHolder<LocationTrait>): QuestionElement = QuestionElement.ForTrait(
+        override fun question(eth: EditingTraitHolder<LocationTrait>): QuestionElement = QuestionElement.ForTrait(
             this,
             QuestionElement.Clickable("Click a block"){
                 val vec = PromptFactory.promptLocation("Vector3i", it)
-                res.trait = LocationTrait(Vector3f(vec))
+                eth.trait = LocationTrait(Vector3f(vec))
             },
-            QuestionElement.Clickable("X", res.trait.vector.x){
+            QuestionElement.Clickable("X", eth.trait.vector.x){
                 val x = PromptFactory.promptFloats(1, it) ?: return@Clickable
-                res.trait = LocationTrait(Vector3f(x[0], res.trait.vector.y, res.trait.vector.z))
+                eth.trait = LocationTrait(Vector3f(x[0], eth.trait.vector.y, eth.trait.vector.z))
             },
-            QuestionElement.Clickable("Y", res.trait.vector.y){
+            QuestionElement.Clickable("Y", eth.trait.vector.y){
                 val y = PromptFactory.promptFloats(1, it) ?: return@Clickable
-                res.trait = LocationTrait(Vector3f(res.trait.vector.x, y[0], res.trait.vector.z))
+                eth.trait = LocationTrait(Vector3f(eth.trait.vector.x, y[0], eth.trait.vector.z))
             },
-            QuestionElement.Clickable("Z", res.trait.vector.z){
+            QuestionElement.Clickable("Z", eth.trait.vector.z){
                 val z = PromptFactory.promptFloats(1, it) ?: return@Clickable
-                res.trait = LocationTrait(Vector3f(res.trait.vector.x, res.trait.vector.y, z[0]))
+                eth.trait = LocationTrait(Vector3f(eth.trait.vector.x, eth.trait.vector.y, z[0]))
             }
         )
     }
@@ -76,34 +76,32 @@ sealed class LocatableTrait<T: Trait>(id: String): Trait(id), EditableTrait<T> {
         override val yaw: Float = 0f,
         override val pitch: Float = 0f,
     ): LocatableTrait<LocationAndDirectionTrait>("location-and-direction"){
-        override fun question(res: EditingTraitHolder<LocationAndDirectionTrait>): QuestionElement = QuestionElement.ForTrait(
+        override fun question(eth: EditingTraitHolder<LocationAndDirectionTrait>): QuestionElement = QuestionElement.ForTrait(
             this,
             QuestionElement.Clickable("Click a block"){
                 val vec = PromptFactory.promptLocation("Vector3i", it)
-                res.trait = LocationAndDirectionTrait(Vector3f(vec), res.trait.yaw, res.trait.pitch)
+                eth.trait = LocationAndDirectionTrait(Vector3f(vec), eth.trait.yaw, eth.trait.pitch)
             },
-            QuestionElement.Clickable("X", res.trait.vector.x){
+            QuestionElement.Clickable("X", eth.trait.vector.x){
                 val x = PromptFactory.promptFloats(1, it) ?: return@Clickable
-                res.trait = LocationAndDirectionTrait(Vector3f(x[0], res.trait.vector.y, res.trait.vector.z), yaw, pitch)
+                eth.trait = LocationAndDirectionTrait(Vector3f(x[0], eth.trait.vector.y, eth.trait.vector.z), yaw, pitch)
             },
-            QuestionElement.Clickable("Y", res.trait.vector.y){
+            QuestionElement.Clickable("Y", eth.trait.vector.y){
                 val y = PromptFactory.promptFloats(1, it) ?: return@Clickable
-                res.trait = LocationAndDirectionTrait(Vector3f(res.trait.vector.x, y[0], res.trait.vector.z), yaw, pitch)
+                eth.trait = LocationAndDirectionTrait(Vector3f(eth.trait.vector.x, y[0], eth.trait.vector.z), yaw, pitch)
             },
-            QuestionElement.Clickable("Z", res.trait.vector.z){
+            QuestionElement.Clickable("Z", eth.trait.vector.z){
                 val z = PromptFactory.promptFloats(1, it) ?: return@Clickable
-                res.trait = LocationAndDirectionTrait(Vector3f(res.trait.vector.x, res.trait.vector.y, z[0]), yaw, pitch)
+                eth.trait = LocationAndDirectionTrait(Vector3f(eth.trait.vector.x, eth.trait.vector.y, z[0]), yaw, pitch)
             },
-            QuestionElement.Clickable("Yaw", res.trait.yaw){
+            QuestionElement.Clickable("Yaw", eth.trait.yaw){
                 val yaw = PromptFactory.promptFloats(1, it) ?: return@Clickable
-                res.trait = LocationAndDirectionTrait(res.trait.vector, yaw[0], pitch)
+                eth.trait = LocationAndDirectionTrait(eth.trait.vector, yaw[0], pitch)
             },
-            QuestionElement.Clickable("Pitch", res.trait.pitch){
+            QuestionElement.Clickable("Pitch", eth.trait.pitch){
                 val pitch = PromptFactory.promptFloats(1, it) ?: return@Clickable
-                res.trait = LocationAndDirectionTrait(res.trait.vector, yaw, pitch[0])
+                eth.trait = LocationAndDirectionTrait(eth.trait.vector, yaw, pitch[0])
             }
         )
     }
 }
-
-

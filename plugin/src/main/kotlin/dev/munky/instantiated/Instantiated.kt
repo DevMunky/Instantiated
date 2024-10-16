@@ -51,7 +51,7 @@ class Instantiated : InstantiatedPlugin() {
         /**
          * Only exists for java interop.
          */
-        @JvmStatic val instantiated get() = plugin
+        @JvmStatic val instantiated = plugin
         @JvmStatic val api get() = InstantiatedAPI
     }
     private var _loadState: PluginState = PluginState.UNDEFINED
@@ -178,7 +178,7 @@ class Instantiated : InstantiatedPlugin() {
         get<ComponentLoader>().save()
         get<MobLoader>().save()
 
-        // when renderer type becomes an option, add that
+        get<TheConfig>().renderer.value.shutdown()
 
         get<DungeonManager>().shutdown()
         get<EditModeHandler>().shutdown()

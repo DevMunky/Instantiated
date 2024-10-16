@@ -5,6 +5,8 @@ import com.google.gson.JsonPrimitive
 import dev.munky.instantiated.common.serialization.CommonJsonCodecs
 import dev.munky.instantiated.common.serialization.JsonCodec
 import dev.munky.instantiated.common.structs.IdType
+import dev.munky.instantiated.data.HolderOfNullable
+import dev.munky.instantiated.data.ServerJsonCodecs
 import dev.munky.instantiated.data.ServerJsonCodecs.BLOCK_TYPE
 import dev.munky.instantiated.data.loader.MobStorage
 import dev.munky.instantiated.dungeon.component.trait.*
@@ -73,6 +75,13 @@ object ComponentCodecs: CodecHolder({"Component '$it' has no registered codec"})
         "uuid", CommonJsonCodecs.UUID, TriggerOnDungeonMobKillComponent::uuid,
         ::TriggerOnDungeonMobKillComponent
     )
+    val TRIGGER_INTERACT_WITH_BLOCK = JsonCodec.composite(
+        TriggerOnBlockInteractComponent::class,
+        "trigger-block-interact", TraitCodecs.INTERACT_WITH_BLOCK_TRIGGER, TriggerOnBlockInteractComponent::getTrait,
+        "location", TraitCodecs.LOCATION, TriggerOnBlockInteractComponent::getTrait,
+        "uuid", CommonJsonCodecs.UUID, TriggerOnBlockInteractComponent::uuid,
+        ::TriggerOnBlockInteractComponent
+    )
 }
 
 object TraitCodecs: CodecHolder({"Trait '$it' has no registered codec"}){ // literally just for the custom component
@@ -127,6 +136,15 @@ object TraitCodecs: CodecHolder({"Trait '$it' has no registered codec"}){ // lit
         "targets", CommonJsonCodecs.UUID_LIST, EventTriggerTrait<*>::targets,
         { id, uses, targets ->
             DungeonMobKillTriggerTrait(IdType.MOB with id, uses, targets)
+        }
+    )
+    val INTERACT_WITH_BLOCK_TRIGGER = JsonCodec.composite(
+        InteractWithBlockTriggerTrait::class,
+        "filter", ServerJsonCodecs.NULLABLE_ITEM_TYPE, { HolderOfNullable(it.filter) },
+        "uses", CommonJsonCodecs.INT, EventTriggerTrait<*>::uses,
+        "targets", CommonJsonCodecs.UUID_LIST, EventTriggerTrait<*>::targets,
+        { holder, uses, targets ->
+            InteractWithBlockTriggerTrait(holder.value, uses, targets)
         }
     )
 }
