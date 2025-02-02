@@ -75,11 +75,11 @@ class TheConfig: DataFileLoader("config.yml"){
     val dungeonCacheSize = ConfigurationValue(
         "dungeon.cache-size-per-dungeon",
         listOf("The amount of cached instances created per format"),
-        { "Dungeon cache size is undefined or out of bounds" },
+        { "Dungeon cache size is undefined: ${it.message})" },
         1,
         {
             val i = it as Int
-            check(i < 10) { "Cache size too large (>10)" }
+            check(i <= 10) { "Cache size too large (>10)" }
             i
         }
     )
@@ -97,23 +97,26 @@ class TheConfig: DataFileLoader("config.yml"){
         { it as Boolean }
     )
 
-    val renderer = ConfigurationValue(
-        "dungeon.edit-mode.renderer",
-        listOf(
-            "Which edit mode renderer, either 'block' or 'particle'",
-            "particle rendering will probably become deprecated lul"
-        ),
-        { "Edit mode renderer is undefined" },
-        plugin.get<BlockDisplayRenderer>(),
-        { name ->
-            name as String
-            when (name.lowercase()){
-                "particle" -> plugin.get<ParticleRenderer>()
-                "block" -> plugin.get<BlockDisplayRenderer>()
-                else -> throw IllegalStateException("Renderer $name does not exist")
+    // Koin is not fully initialized when this is constructed
+    val renderer by lazy {
+        ConfigurationValue(
+            "dungeon.edit-mode.renderer",
+            listOf(
+                "Which edit mode renderer, either 'block' or 'particle'",
+                "particle rendering will probably become deprecated lul"
+            ),
+            { "Edit mode renderer is undefined" },
+            plugin.get<BlockDisplayRenderer>(),
+            { name ->
+                name as String
+                when (name.lowercase()) {
+                    "particle" -> plugin.get<ParticleRenderer>()
+                    "block" -> plugin.get<BlockDisplayRenderer>()
+                    else -> throw IllegalStateException("Renderer $name does not exist")
+                }
             }
-        }
-    )
+        )
+    }
 
     val componentLogging = ConfigurationValue(
         "debug.components",

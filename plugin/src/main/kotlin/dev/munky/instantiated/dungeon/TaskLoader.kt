@@ -50,7 +50,7 @@ class TaskManager: KoinComponent{
             REPEAT
         }
         companion object {
-            val MANAGER = plugin.get<DungeonManager>()
+            val MANAGER by lazy { plugin.get<DungeonManager>() }
         }
         var initialized: Result<Unit> = Result.failure(NotYetInitializedException())
         var instance: Optional<ScheduledTask> = Optional.empty()
@@ -101,7 +101,7 @@ class TaskManager: KoinComponent{
                 for (entity in MANAGER.dungeonWorld.entities){
                     checkInitTime(entity)
                     if (entity.hasIntraData(DungeonManager.NO_DESPAWN_ENTITY)){
-                        entity.ticksLived = 6;
+                        entity.ticksLived = 6
                     }
                 }
             }

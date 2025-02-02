@@ -9,6 +9,8 @@ import kotlin.collections.set
  * Map for organizing dungeon mobs. The root map has keys of identifiers for each room, and the value is an inner weak map with keys of Living Entities and values of the corresponding Dungeon mob.
  * This map is weak, meaning that the Garbage Collector's actions take precedence over all. If a living entity is marked removed and the only references left are weak references,
  * that living entity is cleaned up, and the memory reclaimed. Any entries affected by this in the inner weak map are removed.
+ *
+ * ### Might need to change the semantics of dungeon mobs, meaning that the idea of weak references to entities might have to go.
  */
 class Id2WeakDungeonMobMap : MutableMap<IdKey, WeakHashMap<LivingEntity, DungeonMob>> {
     private val _spine : MutableMap<IdKey, WeakHashMap<LivingEntity, DungeonMob>> = mutableMapOf()

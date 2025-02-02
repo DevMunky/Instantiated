@@ -5,6 +5,7 @@ import dev.jorel.commandapi.CommandAPIBukkitConfig
 import dev.munky.instantiated.command.DungeonCommand
 import dev.munky.instantiated.common.util.UtilHolder
 import dev.munky.instantiated.common.util.formattedSeconds
+import dev.munky.instantiated.common.util.log
 import dev.munky.instantiated.data.IntraDataStores
 import dev.munky.instantiated.data.config.TheConfig
 import dev.munky.instantiated.data.loader.*
@@ -51,7 +52,7 @@ class Instantiated : InstantiatedPlugin() {
         /**
          * Only exists for java interop.
          */
-        @JvmStatic val instantiated = plugin
+        @JvmStatic val instantiated get() = plugin
         @JvmStatic val api get() = InstantiatedAPI
     }
     private var _loadState: PluginState = PluginState.UNDEFINED
@@ -107,9 +108,11 @@ class Instantiated : InstantiatedPlugin() {
             logger(CustomKoinLogger(plugin.logger))
         }
 
-        UtilHolder.registerProvider(logger to { debug })
-        get<TheConfig>().load()
-        get<LangFileLoader>().load()
+        Schedulers.COMPONENT_PROCESSING.submit{
+            UtilHolder.registerProvider(logger to { debug })
+            get<TheConfig>().load()
+            get<LangFileLoader>().load()
+        }
 
         weOwnCommandAPI = !CommandAPI.isLoaded()
         if (weOwnCommandAPI) CommandAPI.onLoad(CommandAPIBukkitConfig(this)
@@ -125,26 +128,28 @@ class Instantiated : InstantiatedPlugin() {
 
         val startTime = System.nanoTime()
 
-        get<WorldChangeAccess>().initialize(FAWEProvider) // just go with world edit for now
+        Schedulers.COMPONENT_PROCESSING.submit {
+            get<WorldChangeAccess>().initialize(FAWEProvider) // just go with world edit for now
 
-        get<EventManager>().initialize()
-        get<TaskManager>().initialize()
+            get<EventManager>().initialize()
+            get<TaskManager>().initialize()
 
-        get<DungeonManager>().initialize()
+            get<DungeonManager>().initialize()
 
-        get<TextRenderer>().initialize()
+            get<TextRenderer>().initialize()
 
-        get<TheConfig>().renderer.value.initialize()
+            get<TheConfig>().renderer.value.initialize()
 
-        get<FormatLoader>().load()
-        get<MobLoader>().load()
-        get<ComponentLoader>().load()
+            get<FormatLoader>().load()
+            get<MobLoader>().load()
+            get<ComponentLoader>().load()
 
-        get<EditModeHandler>().initialize()
+            get<EditModeHandler>().initialize()
 
-        get<ServerPacketRegistration>().initialize(get())
+            get<ServerPacketRegistration>().initialize(get())
 
-        TestingMobs() // TODO remove test
+            TestingMobs() // TODO remove test
+        }
 
         if (debug) {
             loadKoinModules(module {
@@ -203,25 +208,28 @@ class Instantiated : InstantiatedPlugin() {
 
         InstantiatedStateEvent(_loadState).callEvent()
 
-        if (save) get<FormatLoader>().save()
-        get<DungeonManager>().cleanup()
-        get<EditModeHandler>().shutdown()
-        get<TextRenderer>().shutdown()
-        get<TheConfig>().renderer.value.shutdown()
+        Schedulers.ASYNC.submit {
+            if (save) get<FormatLoader>().save()
 
-        get<TheConfig>().load()
-        get<LangFileLoader>().load()
+            get<DungeonManager>().cleanup()
+            get<EditModeHandler>().shutdown()
+            get<TextRenderer>().shutdown()
+            get<TheConfig>().renderer.value.shutdown()
 
-        get<FormatLoader>().load()
-        get<MobLoader>().load()
-        get<ComponentLoader>().load()
+            get<TheConfig>().load()
+            get<LangFileLoader>().load()
 
-        get<TextRenderer>().initialize()
-        get<TheConfig>().renderer.value.initialize()
+            get<FormatLoader>().load()
+            get<MobLoader>().load()
+            get<ComponentLoader>().load()
+
+            get<TextRenderer>().initialize()
+            get<TheConfig>().renderer.value.initialize()
+
+            UtilHolder.registerProvider(logger to { debug })
+        }
 
         get<EditModeHandler>().initialize()
-
-        UtilHolder.registerProvider(logger to { debug })
 
         val timeToReload = Duration.ofNanos(System.nanoTime() - startTime)
 
@@ -239,10 +247,18 @@ val theConfig = plugin.get<TheConfig>()
 
 @Suppress("unused")
 object InstantiatedAPI: KoinComponent {
-    val state: PluginState = plugin.state
-    val debug: Boolean = plugin.debug
-    fun reload(save: Boolean) = plugin.reload(save)
-    val isMythicSupported: Boolean = plugin.isMythicSupported
+    private val _plugin get() = try {
+        plugin
+    }catch (t: Throwable) {
+        t.log("Exception thrown while using Instantiated API. " +
+                "Chances are you are accessing the API " +
+                "before the plugin is initialized.")
+        throw t
+    }
+    val state: PluginState = _plugin.state
+    val debug: Boolean = _plugin.debug
+    fun reload(save: Boolean) = _plugin.reload(save)
+    val isMythicSupported: Boolean = _plugin.isMythicSupported
 
     /**
      * Consumes the cache

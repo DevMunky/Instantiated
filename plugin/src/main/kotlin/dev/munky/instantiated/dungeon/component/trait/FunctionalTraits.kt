@@ -53,7 +53,7 @@ abstract class FunctionalTrait(id: String): Trait(id){
         }
         if (!Schedulers.COMPONENT_PROCESSING.onThread())
             throw IllegalStateException("Trait invocation did not occur on the dedicated component processing thread")
-        invoke0(ctx)
+        if (ctx.isAlive) invoke0(ctx)
     }
     protected abstract fun <T: TraitContext> invoke0(ctx: T)
 }
@@ -95,27 +95,24 @@ class SpawnerTrait(
         val component = ctx.component ?: return
         val room = ctx.room
         val locTrait = component.getTraitOrNull<LocatableTrait<*>>() ?: return
-        val rLoc = room.realVector.toVector3f
+        val rLoc = room.inWorldLocation.toVector3f
         // fixed -> Most mob calculations are done off-main, only spawning unhandled mobs must be done sync
         val count = quantity.random()
         val mobData = arrayOfNulls<MobData>(count)
         count.times { i ->
             val mobLocation = Location(
-                room.realVector.world,
+                room.inWorldLocation.world,
                 (locTrait.vector.x + rLoc.x).toDouble(),
                 (locTrait.vector.y + rLoc.y).toDouble(),
                 (locTrait.vector.z + rLoc.z).toDouble(),
-                // TODO randomize yaw and pitch
-                locTrait.yaw,
-                locTrait.pitch
+                // fixed -> look direction is randomized
+                (Random.nextFloat() * 360f) - 180f,
+                (Random.nextFloat() * 180) - 90f
             )
             // fixed -> radius is now an actual radius rather than a square
             if (radius in 0.1f..50f){
-                val angle = Random.nextDouble(0.0, 2 * PI)
-                val r = Random.nextDouble(
-                    0.0,
-                    radius.toDouble()
-                ) // get a random magnitude to spawn within the defined circle rather than only on the perimeter
+                val angle = Random.nextDouble() * (2 * PI)
+                val r = Random.nextDouble() * radius // get a random magnitude to spawn within the defined circle rather than only on the perimeter
                 mobLocation.add(r * cos(angle), 0.0, r * sin(angle))
             }
             // fixed -> the event is always called on the server thread below
@@ -124,6 +121,7 @@ class SpawnerTrait(
         for (data in mobData){
             data ?: throw IllegalStateException("The entire array should be populated")
             val future = CompletableFuture<LivingEntity>()
+            // create future to handle mob spawns
             future.thenAcceptAsync({
                 val newDungeonMob = data.mob.clone()
                 handleSpawned(it, room, newDungeonMob)
@@ -215,9 +213,9 @@ class SetBlocksTrait(
 
     fun <T : TraitContext> invoke(ctx: T, block: BlockData){
         val room = ctx.room
-        val shift = room.realVector.toVector3i
+        val shift = room.inWorldLocation.toVector3i
         val shifted = blocks.map { Vector3i(it).add(shift) }
-        changeFunction.setBlocks(room.realVector.world, shifted, block)
+        changeFunction.setBlocks(room.inWorldLocation.world, shifted, block)
     }
 
     private interface IChangeFunction{

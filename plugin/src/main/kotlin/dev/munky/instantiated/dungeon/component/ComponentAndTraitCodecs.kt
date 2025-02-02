@@ -46,7 +46,7 @@ object ComponentCodecs: CodecHolder({"Component '$it' has no registered codec"})
     )
     val SPAWNER = JsonCodec.composite(
         SpawnerComponent::class,
-        "location-and-direction-trait", TraitCodecs.LOCATION_AND_DIRECTION, SpawnerComponent::getTrait,
+        "location-trait", TraitCodecs.LOCATION, SpawnerComponent::getTrait,
         "spawner-trait", TraitCodecs.SPAWNER, SpawnerComponent::getTrait,
         "uuid", CommonJsonCodecs.UUID, SpawnerComponent::uuid,
         ::SpawnerComponent
@@ -112,13 +112,13 @@ object TraitCodecs: CodecHolder({"Trait '$it' has no registered codec"}){ // lit
     val ROOM_ENTER_TRIGGER = JsonCodec.composite(
         RoomEnterTriggerTrait::class,
         "uses", CommonJsonCodecs.INT, EventTriggerTrait<*>::uses,
-        "targets", CommonJsonCodecs.UUID_LIST, EventTriggerTrait<*>::targets,
+        "targets", CommonJsonCodecs.UUID_SET, EventTriggerTrait<*>::targets,
         ::RoomEnterTriggerTrait
     )
     val ROOM_LEAVE_TRIGGER = JsonCodec.composite(
         RoomLeaveTriggerTrait::class,
         "uses", CommonJsonCodecs.INT, EventTriggerTrait<*>::uses,
-        "targets", CommonJsonCodecs.UUID_LIST, EventTriggerTrait<*>::targets,
+        "targets", CommonJsonCodecs.UUID_SET, EventTriggerTrait<*>::targets,
         ::RoomLeaveTriggerTrait
     )
     val SET_BLOCKS = JsonCodec.composite(
@@ -133,7 +133,7 @@ object TraitCodecs: CodecHolder({"Trait '$it' has no registered codec"}){ // lit
         DungeonMobKillTriggerTrait::class,
         "mob", CommonJsonCodecs.STRING, { it.mob.key },
         "uses", CommonJsonCodecs.INT, EventTriggerTrait<*>::uses,
-        "targets", CommonJsonCodecs.UUID_LIST, EventTriggerTrait<*>::targets,
+        "targets", CommonJsonCodecs.UUID_SET, EventTriggerTrait<*>::targets,
         { id, uses, targets ->
             DungeonMobKillTriggerTrait(IdType.MOB with id, uses, targets)
         }
@@ -142,7 +142,7 @@ object TraitCodecs: CodecHolder({"Trait '$it' has no registered codec"}){ // lit
         InteractWithBlockTriggerTrait::class,
         "filter", ServerJsonCodecs.NULLABLE_ITEM_TYPE, { HolderOfNullable(it.filter) },
         "uses", CommonJsonCodecs.INT, EventTriggerTrait<*>::uses,
-        "targets", CommonJsonCodecs.UUID_LIST, EventTriggerTrait<*>::targets,
+        "targets", CommonJsonCodecs.UUID_SET, EventTriggerTrait<*>::targets,
         { holder, uses, targets ->
             InteractWithBlockTriggerTrait(holder.value, uses, targets)
         }

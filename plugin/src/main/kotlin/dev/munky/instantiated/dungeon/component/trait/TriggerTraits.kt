@@ -36,7 +36,7 @@ import kotlin.reflect.KClass
 abstract class TriggerTrait(
     id: String
 ): FunctionalTrait(id){
-    protected abstract val targets: List<UUID>
+    protected abstract val targets: Set<UUID>
     final override fun <T : TraitContext> invoke0(ctx: T) {
         for (target in targets) {
             val resolved = plugin.get<ComponentStorage>().getByUUID(target)
@@ -94,7 +94,7 @@ object EventTraitListenerHelper{
 abstract class EventTriggerTrait<E: Event>(
     val event: KClass<E>,
     val uses: Int,
-    public override val targets: List<UUID>
+    public override val targets: Set<UUID>
 ): TriggerTrait("event-trigger"){
 
     private val used: WeakHashMap<Instance, Int> = WeakHashMap()
@@ -150,7 +150,7 @@ private val componentStorage = plugin.get<ComponentStorage>()
 
 class RoomEnterTriggerTrait(
     uses: Int,
-    targets: List<UUID>
+    targets: Set<UUID>
 ): EventTriggerTrait<DungeonRoomPlayerEnterEvent>(DungeonRoomPlayerEnterEvent::class, uses, targets), EditableTrait<RoomEnterTriggerTrait>{
     override fun resolveContext(event: DungeonRoomPlayerEnterEvent): TraitContext = TraitContextWithPlayer(event.room, null, event.player)
     override fun question(eth: EditingTraitHolder<RoomEnterTriggerTrait>): QuestionElement = QuestionElement.ForTrait(
@@ -165,19 +165,19 @@ class RoomEnterTriggerTrait(
     )
 }
 
-private fun <T: EventTriggerTrait<*>> targetQuestion(eth: EditingTraitHolder<T>, f: (List<UUID>, EditingTraitHolder<T>) -> T): QuestionElement {
+private fun <T: EventTriggerTrait<*>> targetQuestion(eth: EditingTraitHolder<T>, f: (Set<UUID>, EditingTraitHolder<T>) -> T): QuestionElement {
     return QuestionElement.ListOf("Targets",
         QuestionElement.Clickable("Add target") {
-            val q = getComponents("Targets to add") { player, comp ->
-                val targets = eth.trait.targets.toMutableList()
+            val q = selectComponent("Targets to add") { player, comp ->
+                val targets = eth.trait.targets.toMutableSet()
                 targets.add(comp.uuid)
                 eth.trait = f(targets, eth)
             }
             q.build().send(it)
         },
         QuestionElement.Clickable("Remove target") {
-            val q = getComponents("Targets to remove") { player, comp ->
-                val targets = eth.trait.targets.toMutableList()
+            val q = selectComponent("Targets to remove") { player, comp ->
+                val targets = eth.trait.targets.toMutableSet()
                 targets.remove(comp.uuid)
                 eth.trait = f(targets, eth)
             }
@@ -186,7 +186,7 @@ private fun <T: EventTriggerTrait<*>> targetQuestion(eth: EditingTraitHolder<T>,
     )
 }
 
-private fun getComponents(msg: String, f: (Audience, DungeonComponent) -> Unit): QuestionElement {
+private fun selectComponent(msg: String, f: (Audience, DungeonComponent) -> Unit): QuestionElement {
     return QuestionElement.ListOf(msg,
         run {
             val list = ArrayList<QuestionElement>()
@@ -204,7 +204,7 @@ private fun getComponents(msg: String, f: (Audience, DungeonComponent) -> Unit):
 
 class RoomLeaveTriggerTrait(
     uses: Int,
-    targets: List<UUID>
+    targets: Set<UUID>
 ): EventTriggerTrait<DungeonRoomPlayerLeaveEvent>(DungeonRoomPlayerLeaveEvent::class, uses, targets), EditableTrait<RoomLeaveTriggerTrait>{
     override fun resolveContext(event: DungeonRoomPlayerLeaveEvent): TraitContext = TraitContextWithPlayer(event.room, null, event.player)
     override fun question(eth: EditingTraitHolder<RoomLeaveTriggerTrait>): QuestionElement = QuestionElement.ForTrait(
@@ -224,7 +224,7 @@ private val mobStorage = plugin.get<MobStorage>()
 class DungeonMobKillTriggerTrait(
     val mob: IdKey,
     uses: Int,
-    targets: List<UUID>
+    targets: Set<UUID>
 ): EventTriggerTrait<DungeonMobKillEvent>(DungeonMobKillEvent::class, uses, targets), EditableTrait<DungeonMobKillTriggerTrait>{
     override fun resolveContext(event: DungeonMobKillEvent): TraitContext? =
         if (event.mob.identifier != mob) null
@@ -254,17 +254,15 @@ class DungeonMobKillTriggerTrait(
 class InteractWithBlockTriggerTrait(
     val filter: ItemType? = null,
     uses: Int,
-    targets: List<UUID>
+    targets: Set<UUID>
 ): EventTriggerTrait<PlayerInteractEvent>(PlayerInteractEvent::class, uses, targets) {
     override fun resolveContext(event: PlayerInteractEvent): TraitContext? {
         if (filter != null) {
-            val block = event.clickedBlock?.type?.asBlockType()
+            val block = event.clickedBlock?.type?.asBlockType() ?: return null
             if (block == filter) {
-                val room = event.player.currentDungeon?.getClosestRoom(event.player) ?: return null
+                val room = event.player.currentDungeon?.getRoomAt(event.player.location) ?: return null
                 return TraitContextWithPlayer(room, null, event.player)
             }
-        } else {
-
         }
         return null
     }

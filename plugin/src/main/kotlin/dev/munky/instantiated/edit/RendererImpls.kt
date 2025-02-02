@@ -31,9 +31,9 @@ import java.util.concurrent.ConcurrentLinkedDeque
 // FIXED -> abstract render methods and use block displays that are glowing
 class ParticleRenderer: AbstractRenderer() {
 
-    private val manager = get<DungeonManager>()
-    private val editModeHandler = get<EditModeHandler>()
-    private val config = get<TheConfig>()
+    private val manager by lazy { get<DungeonManager>() }
+    private val editModeHandler by lazy { get<EditModeHandler>() }
+    private val config by lazy { get<TheConfig>() }
     // these are all particles that are ready to spawn, ie have a location
     private val particleBuffer = ConcurrentLinkedDeque<() -> Unit>()
 

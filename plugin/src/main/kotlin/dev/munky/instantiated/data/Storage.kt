@@ -7,9 +7,9 @@ import dev.munky.instantiated.plugin
 import kotlin.collections.set
 
 abstract class Storage<K: Identifiable, V>(
-    val allowPostRegister: Boolean = false
+    private val allowPostRegister: Boolean = false
 ): Map<K, V>{
-    protected var spine = HashMap<IdKey, K>()
+    private var spine = HashMap<IdKey, K>()
     protected var data = HashMap<K, V>()
     private var _initializing = false
     val initializing: Boolean get() = _initializing
@@ -56,4 +56,3 @@ abstract class Storage<K: Identifiable, V>(
     override fun containsValue(value: V): Boolean = data.containsValue(value)
     override fun containsKey(key: K): Boolean = data.containsKey(key)
 }
-

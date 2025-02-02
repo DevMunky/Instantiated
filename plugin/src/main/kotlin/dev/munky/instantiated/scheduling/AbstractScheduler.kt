@@ -24,7 +24,7 @@ object Schedulers {
  * Custom scheduler implementation
  * Can be used with Futures, so that is nice
  */
-abstract class AbstractScheduler internal constructor(): Executor{
+abstract class AbstractScheduler internal constructor(): Executor {
 
     override fun execute(command: Runnable) { submit { command.run() } }
 
@@ -46,7 +46,7 @@ abstract class AbstractScheduler internal constructor(): Executor{
         return task
     }
 
-    private fun assertEnabled() = if (!plugin.isEnabled || plugin.state.isDisabled) throw IllegalStateException("Instantiated is disabled") else {}
+    private fun assertEnabled() = if (plugin.state.isDisabled) throw IllegalStateException("Instantiated is disabled") else {}
 
     protected abstract fun submit0(block: (ScheduledTask) -> Unit): ScheduledTask
     protected abstract fun submit0(later: Duration, block: (ScheduledTask) -> Unit): ScheduledTask

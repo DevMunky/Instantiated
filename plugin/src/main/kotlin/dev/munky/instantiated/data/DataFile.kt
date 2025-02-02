@@ -100,7 +100,7 @@ class ConfigurationValue<T : Any>(
     }
 
     fun pop() {
-        check(_previous.refersTo(null))
+        check(!_previous.refersTo(null))
         _value = _previous.get()
     }
 

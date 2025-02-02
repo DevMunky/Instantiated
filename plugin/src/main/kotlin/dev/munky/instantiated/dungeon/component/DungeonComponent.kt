@@ -85,10 +85,10 @@ abstract class DungeonComponent(
             )
     }
 
-    inline fun <reified T: Trait> getTraitOrNull(): T? = getTraitByClass(T::class)
+    inline fun <reified T: Trait> getTraitOrNull(): T? = getTraitOrNullByClass(T::class)
 
     @Suppress("UNCHECKED_CAST") // it is actually checked
-    fun <T: Trait> getTraitByClass(clazz: KClass<T>): T? = _traits.firstOrNull { clazz.isInstance(it) } as? T
+    fun <T: Trait> getTraitOrNullByClass(clazz: KClass<T>): T? = _traits.firstOrNull { clazz.isInstance(it) } as? T
 
     fun hasTraitByClass(clazz: KClass<out Trait>): Boolean = _traits.any { clazz.isInstance(it) }
 
@@ -122,11 +122,10 @@ abstract class DungeonComponent(
     )
 
     fun render(renderer: AbstractRenderer, room: RoomInstance, editor: Player) {
-        render0(renderer, room, editor)
         if (!hasTrait<LocatableTrait<*>>()) return
-        val location = Vector3f(getTrait<LocatableTrait<*>>().vector).add(room.realVector.toVector3f)
+        val location = Vector3f(getTrait<LocatableTrait<*>>().vector).add(room.inWorldLocation.toVector3f)
         val oneUp = Vector3f(location.x, location.y + 1f, location.z)
-        val world = room.realVector.world
+        val world = room.inWorldLocation.world
         renderer.renderText(
             world,
             oneUp,

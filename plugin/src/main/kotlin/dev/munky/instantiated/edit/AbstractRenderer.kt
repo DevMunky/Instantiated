@@ -83,11 +83,11 @@ abstract class AbstractRenderer: KoinComponent {
     private val componentStorage = get<ComponentStorage>()
 
     fun renderRoom(room: RoomInstance, editor: Player, data: RenderData){
-        renderBox(room.realVector.world, room.box, data, editor)
+        renderBox(room.inWorldLocation.world, room.box, data, editor)
         componentStorage[room.format]?.forEach {
             it.render(this, room, editor)
         }
-        renderText(room.realVector.world, room.box.center, Component.text(room.identifier.toString()), editor, 3f)
+        renderText(room.inWorldLocation.world, room.box.center, Component.text(room.identifier.toString()), editor, 3f)
     }
 
     fun renderEllipse(world: World, location: Vector3f, radiusV: Vector2f, data: RenderData, editor: Player, thetaStepMod: Float = 2f, resMod: Float = 1f){

@@ -48,8 +48,8 @@ class EventManager: KoinComponent {
     @Suppress("unused")
     private sealed class EventHandler<E : Event>(private val kClass : KClass<E>) {
         companion object{
-            protected val MANAGER get() = plugin.get<DungeonManager>()
-            protected val FORMATS get() = plugin.get<FormatStorage>()
+            protected val MANAGER = plugin.get<DungeonManager>()
+            protected val FORMATS = plugin.get<FormatStorage>()
         }
         private var listener: Listener? = null
         protected abstract fun handle(event: E)

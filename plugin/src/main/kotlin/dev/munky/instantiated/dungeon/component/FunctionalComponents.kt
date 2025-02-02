@@ -17,14 +17,14 @@ import org.joml.Vector3f
 import java.util.*
 
 class SpawnerComponent(
-    locationTrait: LocatableTrait.LocationAndDirectionTrait,
+    locationTrait: LocatableTrait.LocationTrait,
     spawnerTrait: SpawnerTrait,
     override val uuid: UUID = UUID.randomUUID()
 ): DungeonComponent("spawner", listOf(locationTrait,spawnerTrait)){
 
     override val question = QuestionElement.ListOf(
         "Spawner Component",
-        question<LocatableTrait.LocationAndDirectionTrait> {
+        question<LocatableTrait.LocationTrait> {
             SpawnerComponent(it, getTrait(), uuid)
         },
         question<SpawnerTrait> {
@@ -33,9 +33,9 @@ class SpawnerComponent(
     )
 
     override fun render0(renderer: AbstractRenderer, room: RoomInstance, editor: Player) {
-        val location = getTrait<LocatableTrait<*>>().vector.copy.add(room.realVector.toVector3f)
+        val location = getTrait<LocatableTrait<*>>().vector.copy.add(room.inWorldLocation.toVector3f)
         renderer.renderEllipse(
-            room.realVector.world,
+            room.inWorldLocation.world,
             location,
             Vector2f(getTrait<SpawnerTrait>().radius, getTrait<SpawnerTrait>().radius),
             componentData,
@@ -71,12 +71,12 @@ class DoorComponent(
     override fun <T : TraitContext> shutdown(ctx: T) = getTrait<SetBlocksTrait>().invoke(ctx, airData)
 
     override fun render0(renderer: AbstractRenderer, room: RoomInstance, editor: Player) {
-        val location = room.realVector.toVector3f
+        val location = room.inWorldLocation.toVector3f
         for (block in getTrait<SetBlocksTrait>().blocks){
             val bL = location.copy.add(Vector3f(block))
             val box = Box(bL, bL.copy.add(Vector3f(1f)))
             renderer.renderBox(
-                room.realVector.world,
+                room.inWorldLocation.world,
                 box,
                 componentData,
                 editor

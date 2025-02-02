@@ -30,7 +30,7 @@ class ComponentLoader: DataFileLoader("components.json"), KoinComponent {
             try{
                 val formatObject = checkType<JsonObject>(formatEntry.value, "format json")
                 val format = formats[IdType.DUNGEON with formatEntry.key]
-                    ?: throw DataSyntax.consume("id '${formatEntry.key}' does not correspond to a loaded dungeon format")
+                    ?: throw DataSyntax.consume("id '${formatEntry.key}' does not correspond to a loaded dungeon format. Formats: ${formats.keys}")
                 formatObject.asMap().forEach { roomEntry ->
                     try {
                         val roomArray = checkType<JsonArray>(roomEntry.value, "room json")

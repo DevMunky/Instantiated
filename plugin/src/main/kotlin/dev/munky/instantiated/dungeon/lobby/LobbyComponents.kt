@@ -24,6 +24,7 @@ import dev.munky.instantiated.plugin
 import dev.munky.instantiated.util.stackMessage
 import dev.munky.instantiated.util.toBlockVector3
 import dev.munky.instantiated.util.toVector3f
+import io.papermc.paper.math.FinePosition
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.Material
@@ -85,8 +86,7 @@ class LobbyInstance(
         override val parent: LobbyInstance = this@LobbyInstance
         override val format: LobbyRoomFormat = parent.format.lobbyRoom
         override val identifier: IdKey = format.identifier
-        override val realVector get() = parent.locationInWorld
-        override var areMobsSpawned: Boolean = false
+        override val inWorldLocation get() = parent.locationInWorld
         override val origin = format.origin
         override var box: Box = format.box
     }
@@ -149,10 +149,10 @@ class LobbyInstance(
             }
         }
     }
-    override fun getClosestRoom(player: Player): RoomInstance? = getRoomAt(player.location)?.let {
+    private fun getClosestRoom(player: Player): RoomInstance? = getRoomAt(player.location)?.let {
         if (this.lobbyRoom.box.center.distance(player.location.toVector3f) < 50) return@let this.lobbyRoom else null
     }
-    override fun getRoomAt(location: Location): RoomInstance? = if (lobbyRoom.box.contains(location.toVector3f)) lobbyRoom else null
+    override fun getRoomAt(location: FinePosition): RoomInstance? = if (lobbyRoom.box.contains(location.toVector3f)) lobbyRoom else null
     override fun remove(
         context: Instance.RemovalReason,
         cache: Boolean

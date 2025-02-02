@@ -32,9 +32,8 @@ import kotlin.time.Duration.Companion.seconds
 
 interface RoomInstance : Identifiable {
     val origin : Vector3ic
-    val realVector : Location
+    val inWorldLocation: Location
     var box : Box
-    var areMobsSpawned : Boolean
     val parent : Instance
     val format : RoomFormat
 

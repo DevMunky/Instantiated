@@ -5,6 +5,7 @@ import dev.munky.instantiated.dungeon.DungeonManager
 import dev.munky.instantiated.dungeon.interfaces.Instance
 import dev.munky.instantiated.dungeon.interfaces.RoomInstance
 import dev.munky.instantiated.dungeon.mob.Id2WeakDungeonMobMap
+import io.papermc.paper.math.FinePosition
 import org.bukkit.Location
 import org.bukkit.entity.Player
 import java.util.*
@@ -36,10 +37,7 @@ class ProceduralInstance(
     override fun removePlayer(player: UUID) {
         TODO("Not yet implemented")
     }
-    override fun getClosestRoom(player: Player): RoomInstance? {
-        TODO("Not yet implemented")
-    }
-    override fun getRoomAt(location: Location): RoomInstance? {
+    override fun getRoomAt(location: FinePosition): RoomInstance? {
         TODO("Not yet implemented")
     }
     override fun remove(context: Instance.RemovalReason, cache: Boolean) {

@@ -4,6 +4,7 @@ import dev.munky.instantiated.common.structs.IdKey
 import dev.munky.instantiated.common.structs.Identifiable
 import dev.munky.instantiated.dungeon.mob.Id2WeakDungeonMobMap
 import dev.munky.instantiated.exception.DungeonException
+import io.papermc.paper.math.FinePosition
 import org.bukkit.Bukkit
 import org.bukkit.FluidCollisionMode
 import org.bukkit.Location
@@ -51,8 +52,8 @@ interface Instance : Identifiable {
     fun removePlayers(players: List<UUID>){
         players.forEach { removePlayer(it) }
     }
-    fun getClosestRoom(player: Player) : RoomInstance?
-    fun getRoomAt(location: Location) : RoomInstance?
+    // fun getClosestRoom(player: Player) : RoomInstance?
+    fun getRoomAt(location: FinePosition) : RoomInstance?
     @Throws(DungeonException::class)
     fun remove(context: RemovalReason, cache: Boolean)
 

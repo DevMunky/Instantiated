@@ -14,7 +14,6 @@ class ProceduralRoomInstance(
 ) : RoomInstance {
     override var box: Box = format.box
     override val origin = format.origin
-    override val realVector: Location = parent.locationInWorld.toVector3f.add(Vector3f(origin)).toLocation(parent.locationInWorld.world)
-    override var areMobsSpawned: Boolean = false
+    override val inWorldLocation: Location = parent.locationInWorld.toVector3f.add(Vector3f(origin)).toLocation(parent.locationInWorld.world)
     override val identifier: IdKey = format.identifier
 }

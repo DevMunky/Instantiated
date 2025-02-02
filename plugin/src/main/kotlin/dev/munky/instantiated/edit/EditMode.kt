@@ -9,13 +9,14 @@ import dev.munky.instantiated.data.IntraDataStores.EntityIntraData.setIntraData
 import dev.munky.instantiated.data.IntraEntry
 import dev.munky.instantiated.data.loader.DataOperationResult
 import dev.munky.instantiated.data.loader.FormatLoader
+import dev.munky.instantiated.data.loader.caption
 import dev.munky.instantiated.dungeon.DungeonManager
 import dev.munky.instantiated.dungeon.component.trait.SetBlocksTrait
 import dev.munky.instantiated.dungeon.currentDungeon
 import dev.munky.instantiated.dungeon.interfaces.RoomInstance
 import dev.munky.instantiated.event.ListenerFactory
-import dev.munky.instantiated.data.loader.caption
 import dev.munky.instantiated.plugin
+import dev.munky.instantiated.scheduling.Schedulers
 import dev.munky.instantiated.util.send
 import dev.munky.instantiated.util.toVector3i
 import net.kyori.adventure.text.Component
@@ -117,8 +118,10 @@ class EditModeHandler: KoinComponent{
                 var point = event.interactionPoint
                 if (point == null && event.clickedBlock != null) point = event.clickedBlock!!.location
                 val interaction = EditToolInteraction(event, dungeon, room, point)
-                if (EditTool.execute(interaction)) {
-                    plugin.get<EditModeHandler>().unsavedChanges = true
+                Schedulers.COMPONENT_PROCESSING.submit {
+                    if (EditTool.execute(interaction)) {
+                        plugin.get<EditModeHandler>().unsavedChanges = true
+                    }
                 }
             }
         ){
@@ -136,7 +139,7 @@ class EditModeHandler: KoinComponent{
                 val room = c.data.first
                 val trait = c.data.second
                 val block = c.event.clickedBlock?.location?.toVector3i ?: return@EventHandler
-                block.sub(room.realVector.toVector3i)
+                block.sub(room.inWorldLocation.toVector3i)
                 if (block in trait.blocks) {
                     trait.blocks.remove(block)
                     caption("edit.component.set_blocks_trait.remove", block.x, block.y, block.z).send(c.event.player)

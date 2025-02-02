@@ -6,7 +6,9 @@ import org.bukkit.entity.Player
 open class TraitContext(
     val room: RoomInstance,
     var component: DungeonComponent?
-)
+) {
+    var isAlive = true
+}
 
 /**
  * When resolving the context within a trait, make the component null.

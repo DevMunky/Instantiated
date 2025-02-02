@@ -4,6 +4,7 @@ package dev.munky.instantiated.util
 
 import com.sk89q.worldedit.math.BlockVector3
 import dev.munky.instantiated.common.util.formatException
+import io.papermc.paper.math.Position
 import net.kyori.adventure.audience.Audience
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -30,9 +31,9 @@ fun Location.toVector3() : com.sk89q.worldedit.math.Vector3 {
 
 val Location.toVector3d : Vector3d get() = Vector3d(this.x, this.y, this.z)
 
-val Location.toVector3f : Vector3f get() = Vector3f(this.x.toFloat(), this.y.toFloat(), this.z.toFloat())
+val Position.toVector3f : Vector3f get() = Vector3f(this.x().toFloat(), this.y().toFloat(), this.z().toFloat())
 
-val Location.toVector3i : Vector3i get() = Vector3i(this.x.toInt(), this.y.toInt(), this.z.toInt())
+val Position.toVector3i : Vector3i get() = Vector3i(this.x().toInt(), this.y().toInt(), this.z().toInt())
 
 val BlockVector3.toVector3d : Vector3d get() = Vector3d(this.x().toDouble(), this.y().toDouble(), this.z().toDouble())
 

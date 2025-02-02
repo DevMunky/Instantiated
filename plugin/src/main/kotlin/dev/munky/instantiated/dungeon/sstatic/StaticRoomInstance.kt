@@ -19,9 +19,8 @@ class StaticRoomInstance(
     override val origin = format.origin
     override val identifier: IdKey = format.identifier
     private val shift = Vector3i(parent.locationInWorld.x.toInt(),parent.locationInWorld.y.toInt(),parent.locationInWorld.z.toInt()).add(origin)
-    override val realVector = shift.toLocation(parent.locationInWorld.world)
+    override val inWorldLocation = shift.toLocation(parent.locationInWorld.world)
     override var box = format.box.copy() + Vector3f(shift.x.toFloat(), shift.y.toFloat(), shift.z.toFloat())
-    override var areMobsSpawned: Boolean = false
 
     init{
         val components = plugin.get<ComponentStorage>()[this.format] ?: ArrayList()

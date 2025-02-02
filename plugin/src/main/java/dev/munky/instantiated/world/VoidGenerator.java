@@ -13,12 +13,10 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.Random;
 
-/**
- * Void Generator for the world that one-block islands will be in.
- */
 public class VoidGenerator extends ChunkGenerator {
+    @NotNull
     @Override
-    public List<BlockPopulator> getDefaultPopulators(World world) {return List.of();}
+    public List<BlockPopulator> getDefaultPopulators(@NotNull World world) {return List.of();}
     @Override
     public void generateNoise(
             @NotNull WorldInfo worldInfo,

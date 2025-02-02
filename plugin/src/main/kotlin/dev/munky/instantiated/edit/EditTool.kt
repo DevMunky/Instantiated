@@ -86,9 +86,9 @@ sealed interface EditTool{
         override fun condition(click: EditToolInteraction): Boolean = true // no condition
         private fun onClick(click: EditToolInteraction){
             val interaction = click.interactionPoint ?: click.event.player.location;
-            val interactionVector = interaction.toVector3f.add(click.instancedRoom.realVector.toVector3f.mul(-1f))
+            val interactionVector = interaction.toVector3f.add(click.instancedRoom.inWorldLocation.toVector3f.mul(-1f))
             val box = getCuboidFromNewCorner(click.instancedRoom.format.box, interactionVector)
-            click.instancedRoom.box = box + click.instancedRoom.realVector.toVector3f
+            click.instancedRoom.box = box + click.instancedRoom.inWorldLocation.toVector3f
             click.instancedRoom.format.box = box // update the master 'template'
             click.event.player.sendMessage("<green>Added vertex at ${interactionVector.x},${interactionVector.y},${interactionVector.z}".asComponent)
             plugin.logger.debug(
@@ -146,7 +146,7 @@ sealed interface EditTool{
         fun <K,V> HashMap(vararg pairs: Pair<K, V>): HashMap<K,V> = HashMap(pairs.toMap())
 
         private fun onClick(click: EditToolInteraction) {
-            val interaction = (click.interactionPoint?.clone()?.subtract(click.instancedRoom.realVector))?.toVector3f ?: run {
+            val interaction = (click.interactionPoint?.clone()?.subtract(click.instancedRoom.inWorldLocation))?.toVector3f ?: run {
                 BuiltInQuestions.roomComponents(click.instancedRoom).build().send(click.event.player)
                 return
             }

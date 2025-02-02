@@ -28,7 +28,10 @@ import kotlin.math.pow
  * Hopefully one day replacing the java impl!
  */
 class DungeonManagerImpl : DungeonManager {
-    override val dungeonWorld: World = createDungeonWorld()
+    override val dungeonWorld: World by lazy { try{ DungeonManager.createDungeonWorld() }catch (t: Throwable) {
+        t.log("While creating dungeon world")
+        throw t
+    } }
 
     override val instances get() = get<FormatStorage>().values.flatMap { it.instances }
 
@@ -168,37 +171,7 @@ interface DungeonManager : KoinComponent {
     val instances: Collection<Instance>
 
     // return Result<World> in the future for better error handling
-    fun createDungeonWorld(): World {
-        val worldName = get<TheConfig>().dungeonWorldName.value
-        var dungeonWorld: World? = Bukkit.getWorld(worldName)
-        if (dungeonWorld == null && Bukkit.getWorlds().isNotEmpty()) {
-            val creator = WorldCreator.name(worldName)
-            creator.generator(VoidGenerator())
-            creator.keepSpawnLoaded(TriState.FALSE)
-            creator.environment(World.Environment.NORMAL)
-            creator.generateStructures(false)
-            creator.type(WorldType.FLAT)
-            plugin.logger.debug("Creating instancing world...")
-            val newWorld = creator.createWorld()
-            if (newWorld != null) {
-                newWorld.viewDistance = 15
-                newWorld.simulationDistance = 15
-                newWorld.isAutoSave = false
-                newWorld.setGameRule(GameRule.DO_MOB_SPAWNING, false)
-                newWorld.setGameRule(GameRule.SPECTATORS_GENERATE_CHUNKS, false)
-                newWorld.setGameRule(GameRule.ANNOUNCE_ADVANCEMENTS, false)
-                newWorld.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false)
-                newWorld.setGameRule(GameRule.DO_WEATHER_CYCLE, false)
-                newWorld.setGameRule(GameRule.DO_TILE_DROPS, false)
-                newWorld.setGameRule(GameRule.SHOW_DEATH_MESSAGES, false)
-                dungeonWorld = newWorld
-                plugin.logger.debug("Successfully created instancing world")
-            } else {
-                plugin.logger.warning("Could not create a new world based on config value 'dungeon.world'")
-            }
-        }
-        return dungeonWorld ?: throw IllegalStateException("Dungeon world could not be created")
-    }
+
 
     companion object {
         val KEY_ENTITY = IntraEntry<IdKey>("key-entity")
@@ -208,6 +181,41 @@ interface DungeonManager : KoinComponent {
         val NO_DESPAWN_ENTITY = IntraEntry<Unit>("no-despawn-entity")
         val EDIT_TOOL = NamespacedKey(plugin, "edit-tool")
         const val DEFAULT_DIFFICULTY = 1.0
+
+        fun createDungeonWorld(): World {
+            plugin.logger.debug("Creating instancing world...")
+            // if (!Bukkit.getServer().isTickingWorlds) throw IllegalStateException("Calling DungeonManager.dungeonWorld: World too quickly!")
+            val worldName = plugin.get<TheConfig>().dungeonWorldName.value
+            val dungeonWorld: World? = Bukkit.getWorld(worldName)
+            if (dungeonWorld == null) {
+                val creator = WorldCreator.name(worldName)
+                creator.generator(VoidGenerator())
+                creator.keepSpawnLoaded(TriState.FALSE)
+                creator.environment(World.Environment.NORMAL)
+                creator.generateStructures(false)
+                creator.type(WorldType.FLAT)
+                plugin.logger.debug("Loading instancing world...")
+                val newWorld = Bukkit.createWorld(creator)
+                if (newWorld != null) {
+                    newWorld.viewDistance = 6
+                    newWorld.simulationDistance = 6
+                    newWorld.isAutoSave = false
+                    newWorld.setGameRule(GameRule.DO_MOB_SPAWNING, false)
+                    newWorld.setGameRule(GameRule.SPECTATORS_GENERATE_CHUNKS, false)
+                    newWorld.setGameRule(GameRule.ANNOUNCE_ADVANCEMENTS, false)
+                    newWorld.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false)
+                    newWorld.setGameRule(GameRule.DO_WEATHER_CYCLE, false)
+                    newWorld.setGameRule(GameRule.DO_TILE_DROPS, false)
+                    newWorld.setGameRule(GameRule.SHOW_DEATH_MESSAGES, false)
+                    plugin.logger.debug("Successfully registered instancing world")
+                    return newWorld
+                } else {
+                    plugin.logger.warning("Could not create a new world based on config value 'dungeon.world'")
+                    throw IllegalStateException("Dungeon world could not be created")
+                }
+            }
+            return dungeonWorld
+        }
     }
 }
 

@@ -6,7 +6,6 @@ import dev.munky.instantiated.common.structs.IdKey
 import dev.munky.instantiated.common.structs.IdType
 import dev.munky.instantiated.data.Storage
 import dev.munky.instantiated.plugin
-import dev.munky.instantiated.util.asString
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.minimessage.MiniMessage
@@ -80,7 +79,6 @@ class LangStorage: Storage<IdKey, Component?>(), KoinComponent {
         var component = this[id] ?: return langEntryNotFound(key, this, *objects)
         for ((index, any) in objects.withIndex()) {
             val replacement = any.toString()
-            plugin.logger.debug("replacing {$index} with $replacement")
             component = component.replaceText {
                 it
                     .matchLiteral("{$index}")
@@ -88,7 +86,6 @@ class LangStorage: Storage<IdKey, Component?>(), KoinComponent {
                     .once()
             }
         }
-        plugin.logger.debug("Produced '${component.asString}'")
         return component
     }
 

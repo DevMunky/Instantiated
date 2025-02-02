@@ -28,6 +28,7 @@ import dev.munky.instantiated.exception.PhysicalRemovalException
 import dev.munky.instantiated.plugin
 import dev.munky.instantiated.scheduling.Schedulers
 import dev.munky.instantiated.util.*
+import io.papermc.paper.math.FinePosition
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.entity.Player
@@ -135,7 +136,7 @@ internal constructor(
         }
     }
 
-    override fun getClosestRoom(player: Player): RoomInstance? =
+    private fun getClosestRoom(player: Player): RoomInstance? =
         getRoomAt(player.location)
             ?: run {
                 val playerVector = Vector3f(player.x.toFloat(), player.y.toFloat(), player.z.toFloat())
@@ -149,7 +150,7 @@ internal constructor(
                     .firstOrNull()
             }
 
-    override fun getRoomAt(location: Location): RoomInstance? {
+    override fun getRoomAt(location: FinePosition): RoomInstance? {
         return rooms.values.firstOrNull { p ->
             p.box.contains(location.toVector3f)
         }

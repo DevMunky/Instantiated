@@ -211,8 +211,7 @@ object FormatCodecs {
                 }
                 rooms[dungeonRoom.identifier] = dungeonRoom
             }
-            rooms.toSortedMap(alphabeticIdComp)
-            format.rooms.putAll(rooms)
+            format.rooms.putAll(rooms.toSortedMap(alphabeticIdComp))
             plugin.logger.debug("Loaded dungeon '$identifier'")
             format
         }
