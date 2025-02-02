@@ -2,7 +2,6 @@ package dev.munky.instantiated
 
 import dev.munky.instantiated.common.structs.IdType
 import dev.munky.instantiated.common.util.formatException
-import dev.munky.instantiated.data.loader.FormatStorage
 import dev.munky.instantiated.dungeon.DungeonManager
 import dev.munky.instantiated.dungeon.component.DoorComponent
 import dev.munky.instantiated.dungeon.component.trait.SetBlocksTrait
@@ -23,7 +22,7 @@ private inline fun test(es: MutableMap<String, Exception>, name: String, block: 
         block()
         plugin.logger.test("Test $name passed")
     }catch (t: Throwable){
-        plugin.logger.severe("Test $name failed")
+        plugin.logger.test("Test $name failed: ${t.formatException(stackSize = 5)}")
         es[name] = (IllegalStateException("Test $name failed", t))
     }
 }
@@ -35,20 +34,17 @@ class UnitTesting: KoinComponent {
 
     fun start(){
         val results = mutableMapOf<String, Exception>()
-        test(results,"format"){
-            val formats = get<FormatStorage>().values.toMutableList()
-            formats.add(
-                StaticFormat(
-                    IdType.DUNGEON with "unit-test",
-                    null,
-                    Vector3f(5f)
-                )
-            )
-            get<FormatStorage>().load(formats.associateBy { it.identifier })
-        }
         test(results,"instance"){
-            val i = get<DungeonManager>()
-                .startInstance("unit-test", Format.InstanceOption.NEW_NON_CACHED, listOf())
+            val format = StaticFormat(
+                IdType.DUNGEON with "unit-test",
+                null,
+                Vector3f(5f)
+            )
+            val i = get<DungeonManager>().startInstance(
+                format,
+                Format.InstanceOption.NEW_NON_CACHED,
+                listOf()
+            )
             testInst = i.getOrThrow()
         }
         test(results, "questions"){
@@ -74,13 +70,9 @@ class UnitTesting: KoinComponent {
             }) {"question does not contain trait"}
         }
         test(results, "cleanup"){
-            val formats = get<FormatStorage>().values.toMutableList()
-            testInst!!.remove(Instance.RemovalReason.FORMAT_CHANGE, false)
-            formats.removeIf { it.identifier.key == "unit-test" }
-            get<FormatStorage>().load(formats.associateBy { it.identifier })
-        }
-        results.forEach {
-            plugin.logger.test("Test ${it.key} failed: ${it.value.formatException(true, 5)}")
+            testInst?.remove(Instance.RemovalReason.FORMAT_CHANGE, false) ?: run {
+                plugin.logger.test("Instancing must have failed if the property is null")
+            }
         }
     }
 }

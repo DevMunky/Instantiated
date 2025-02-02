@@ -22,7 +22,7 @@ object ComponentCodecs: CodecHolder({"Component '$it' has no registered codec"})
         CustomComponent::class,
         {
             val json = JsonObject()
-            for (t in it.`$traits`){
+            for (t in it.`@traits`){
                 val codec = TraitCodecs.get(t::class)
                 json.add(codec.clazz.simpleName, codec.encode(t))
             }

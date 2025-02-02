@@ -60,9 +60,8 @@ class LangFileLoader: DataFileLoader("lang.json"), KoinComponent{
     }
 }
 
-private fun langEntryNotFound(key: String, storage: LangStorage, vararg objects: Any?): Component  {
-    plugin.logger.debug("lang entry '$key' not found")
-    storage.nil(key)
+private fun langEntryNotFound(key: String, vararg objects: Any?): Component  {
+    plugin.logger.warning("Lang entry '$key' not found")
     var message =
         Component.text("'")
             .append(Component.text(key).color(NamedTextColor.WHITE))
@@ -76,7 +75,7 @@ class LangStorage: Storage<IdKey, Component?>(), KoinComponent {
 
     fun caption(key: String, vararg objects: Any?): Component {
         val id = IdType.TRANSLATABLE with key
-        var component = this[id] ?: return langEntryNotFound(key, this, *objects)
+        var component = this[id] ?: return langEntryNotFound(key, *objects)
         for ((index, any) in objects.withIndex()) {
             val replacement = any.toString()
             component = component.replaceText {
@@ -88,8 +87,6 @@ class LangStorage: Storage<IdKey, Component?>(), KoinComponent {
         }
         return component
     }
-
-    internal fun nil(key: String) { data[IdType.TRANSLATABLE with key] = null }
 }
 
 fun caption(key: String, vararg o: Any?): Component = plugin.get<LangStorage>().caption(key, *o)

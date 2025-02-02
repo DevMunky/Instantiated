@@ -79,7 +79,7 @@ class TheConfig: DataFileLoader("config.yml"){
         1,
         {
             val i = it as Int
-            check(i <= 10) { "Cache size too large (>10)" }
+            check(i < 10) { "Cache size too large (>10)" }
             i
         }
     )

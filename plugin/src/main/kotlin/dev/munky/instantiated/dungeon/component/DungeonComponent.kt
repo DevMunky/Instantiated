@@ -20,6 +20,7 @@ import net.kyori.adventure.text.Component
 import org.bukkit.Particle
 import org.bukkit.block.BlockType
 import org.bukkit.entity.Player
+import org.jetbrains.annotations.ApiStatus
 import org.joml.Vector3f
 import org.koin.core.component.get
 import java.util.*
@@ -43,7 +44,9 @@ abstract class DungeonComponent(
 ): Identifiable{
     private val _traits = HashSet(traits)
 
-    internal val `$traits`: Collection<Trait> = _traits
+    @ApiStatus.Internal
+    @JvmField
+    internal val `@traits`: Collection<Trait> = _traits
 
     abstract val uuid: UUID
 

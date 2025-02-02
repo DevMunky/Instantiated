@@ -208,7 +208,7 @@ class Instantiated : InstantiatedPlugin() {
 
         InstantiatedStateEvent(_loadState).callEvent()
 
-        Schedulers.ASYNC.submit {
+        /*Schedulers.COMPONENT_PROCESSING.submit*/ run {
             if (save) get<FormatLoader>().save()
 
             get<DungeonManager>().cleanup()
